@@ -1,8 +1,7 @@
 from app.extensions import db
-import uuid
 from datetime import datetime
 from enum import Enum
-from sqlalchemy.dialects.mysql import CHAR
+from sqlalchemy.types import BigInteger
 
 class Gender(str, Enum):
     MAN = "man"
@@ -22,7 +21,7 @@ class Role(db.Model):
 
 class User(db.Model):
     __tablename__ = 'users'
-    id = db.Column(CHAR(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     name = db.Column(db.String(50), nullable=False)
     address = db.Column(db.String(255))
     email = db.Column(db.String(30), unique=True, nullable=False)
@@ -39,14 +38,14 @@ class User(db.Model):
 
 class UserRole(db.Model):
     __tablename__ = 'user_roles'
-    user_id = db.Column(CHAR(36), db.ForeignKey('users.id'), primary_key=True)
+    user_id = db.Column(db.BigInteger, db.ForeignKey('users.id'), primary_key=True)
     role_id = db.Column(db.BigInteger, db.ForeignKey('roles.id'), primary_key=True)
 
 class Resident(db.Model):
     __tablename__ = 'residents'
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     nik = db.Column(db.String(16), unique=True, nullable=False)
-    user_id = db.Column(CHAR(36), db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.BigInteger, db.ForeignKey('users.id'), nullable=False)
     date_of_birth = db.Column(db.Date, nullable=False)
     place_of_birth = db.Column(db.String(50), nullable=False)
     gender = db.Column(db.Enum(Gender), nullable=False)
@@ -60,7 +59,7 @@ class Resident(db.Model):
 class Administration(db.Model):
     __tablename__ = 'administrations'
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    user_id = db.Column(CHAR(36), db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.BigInteger, db.ForeignKey('users.id'), nullable=False)
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.now())
     updated_at = db.Column(db.TIMESTAMP, onupdate=db.func.now())
 
@@ -70,7 +69,7 @@ class Administration(db.Model):
 class Institution(db.Model):
     __tablename__ = 'institutions'
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    user_id = db.Column(CHAR(36), db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.BigInteger, db.ForeignKey('users.id'), nullable=False)
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.now())
@@ -83,7 +82,7 @@ class Driver(db.Model):
     __tablename__ = 'drivers'
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     institution_id = db.Column(db.BigInteger, db.ForeignKey('institutions.id'), nullable=False)
-    user_id = db.Column(CHAR(36), db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.BigInteger, db.ForeignKey('users.id'), nullable=False)
     position = db.Column(db.String(50), nullable=False)
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.now())
     updated_at = db.Column(db.TIMESTAMP, onupdate=db.func.now())

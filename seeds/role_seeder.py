@@ -1,6 +1,5 @@
 from flask_seeder import Seeder
 from app.models import Role
-
 class RoleSeeder(Seeder):
 
     def run(self):
@@ -8,7 +7,7 @@ class RoleSeeder(Seeder):
         if Role.query.count() == 0:
             roles = [
                 Role(name='administration'),
-                Role(name='institutions'),
+                Role(name='institution'),
                 Role(name='resident'),
                 Role(name='driver')
             ]

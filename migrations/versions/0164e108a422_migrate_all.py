@@ -1,16 +1,16 @@
-"""migrate all table
+"""migrate all
 
-Revision ID: eab01013c447
+Revision ID: 0164e108a422
 Revises: 
-Create Date: 2024-11-19 09:10:30.393423
+Create Date: 2024-11-21 06:18:06.334123
 
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import mysql
+
 
 # revision identifiers, used by Alembic.
-revision = 'eab01013c447'
+revision = '0164e108a422'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -26,7 +26,7 @@ def upgrade():
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('users',
-    sa.Column('id', mysql.CHAR(length=36), nullable=False),
+    sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('name', sa.String(length=50), nullable=False),
     sa.Column('address', sa.String(length=255), nullable=True),
     sa.Column('email', sa.String(length=30), nullable=False),
@@ -43,7 +43,7 @@ def upgrade():
     )
     op.create_table('administrations',
     sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False),
-    sa.Column('user_id', mysql.CHAR(length=36), nullable=False),
+    sa.Column('user_id', sa.BigInteger(), nullable=False),
     sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()'), nullable=True),
     sa.Column('updated_at', sa.TIMESTAMP(), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
@@ -51,7 +51,7 @@ def upgrade():
     )
     op.create_table('institutions',
     sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False),
-    sa.Column('user_id', mysql.CHAR(length=36), nullable=False),
+    sa.Column('user_id', sa.BigInteger(), nullable=False),
     sa.Column('latitude', sa.Float(), nullable=True),
     sa.Column('longitude', sa.Float(), nullable=True),
     sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()'), nullable=True),
@@ -62,7 +62,7 @@ def upgrade():
     op.create_table('residents',
     sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('nik', sa.String(length=16), nullable=False),
-    sa.Column('user_id', mysql.CHAR(length=36), nullable=False),
+    sa.Column('user_id', sa.BigInteger(), nullable=False),
     sa.Column('date_of_birth', sa.Date(), nullable=False),
     sa.Column('place_of_birth', sa.String(length=50), nullable=False),
     sa.Column('gender', sa.Enum('MAN', 'WOMEN', name='gender'), nullable=False),
@@ -74,7 +74,7 @@ def upgrade():
     sa.UniqueConstraint('nik')
     )
     op.create_table('user_roles',
-    sa.Column('user_id', mysql.CHAR(length=36), nullable=False),
+    sa.Column('user_id', sa.BigInteger(), nullable=False),
     sa.Column('role_id', sa.BigInteger(), nullable=False),
     sa.ForeignKeyConstraint(['role_id'], ['roles.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
@@ -83,7 +83,7 @@ def upgrade():
     op.create_table('drivers',
     sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('institution_id', sa.BigInteger(), nullable=False),
-    sa.Column('user_id', mysql.CHAR(length=36), nullable=False),
+    sa.Column('user_id', sa.BigInteger(), nullable=False),
     sa.Column('position', sa.String(length=50), nullable=False),
     sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()'), nullable=True),
     sa.Column('updated_at', sa.TIMESTAMP(), nullable=True),
