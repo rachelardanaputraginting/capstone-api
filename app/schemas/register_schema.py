@@ -26,7 +26,7 @@ class ResidentRegistrationSchema(Schema):
     ])
     date_of_birth = fields.Date(required=True)
     place_of_birth = fields.String(required=True)
-    gender = fields.String(required=True, validate=validate.OneOf(['man', 'women']))
+    gender = fields.String(required=True, validate=validate.OneOf(['MAN', 'WOMEN']))
     phone_number = fields.String(required=True)
 
     @validates_schema
@@ -44,7 +44,7 @@ class InstitutionRegistrationSchema(Schema):
     username = fields.String(required=True, validate=[
         validate.Length(min=1, max=255)
     ])
-    address = fields.String(allow_none=True, validate=[
+    address = fields.String(required=True, validate=[
         validate.Length(max=500)
     ])
     password = fields.String(required=True, validate=[
@@ -54,7 +54,6 @@ class InstitutionRegistrationSchema(Schema):
     role = fields.String(required=True, validate=validate.OneOf(['resident', 'institution']))
     
     # Institution-specific fields
-    service_id = fields.Integer(required=True)
     description = fields.String(required=True)
     latitude = fields.Float(required=True)
     longitude = fields.Float(required=True)

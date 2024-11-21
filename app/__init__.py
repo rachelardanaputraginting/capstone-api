@@ -1,7 +1,7 @@
 from flask import Flask
 from config import Config
 from app.routes.auth import auth
-from app.extensions import db, migrate
+from app.extensions import db, migrate, jwt
 from flask_seeder import FlaskSeeder
 
 def create_app(config_class=Config):
@@ -14,6 +14,9 @@ def create_app(config_class=Config):
     # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
+
+    # JWT
+    jwt.init_app(app)
     
     # Import models to ensure they're loaded
     from app.models import models

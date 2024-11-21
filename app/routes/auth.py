@@ -3,7 +3,6 @@ import secrets
 
 from flask import request, jsonify, Blueprint, render_template
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jti, get_jwt
-from marshmallow import ValidationError
 from werkzeug.security import check_password_hash, generate_password_hash
 from itsdangerous import URLSafeTimedSerializer
 from flask_mail import Message
@@ -16,9 +15,11 @@ from app.models.models import Role, User, Resident, Institution
 from app.models.reset_password import ResetPassword
 from utils import auth
 
-from utils.validator import Validator
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from app.schemas.register_schema import ResidentRegistrationSchema, InstitutionRegistrationSchema
+
+from marshmallow import ValidationError
+from sqlalchemy.exc import IntegrityError
 
 auth = Blueprint('auth', __name__)
 
@@ -27,7 +28,6 @@ auth = Blueprint('auth', __name__)
 def register():
     # Get the role from the request
     role = request.json.get('role')
-    print(role)
     
     # Select appropriate schema based on role
     if role == 'resident':
@@ -74,14 +74,17 @@ def register():
         new_user = User(
             name=data['name'],
             email=data['email'],
+            address=data['address'],
             username=data['username'],
             password=generate_password_hash(data['password'])
         )
+
         db.session.add(new_user)
+        db.session.flush()
         
         # Attach the role to the user
-        new_user.roles.append(role_obj)
-
+        # new_user.roles.append(role_obj)
+        print(new_user.id)
         # Additional details based on role
         if role == 'resident':
             resident = Resident(
@@ -92,6 +95,7 @@ def register():
                 gender=data['gender'],
                 phone_number=data['phone_number']
             )
+            print(resident)
             db.session.add(resident)
         
         elif role == 'institution':
