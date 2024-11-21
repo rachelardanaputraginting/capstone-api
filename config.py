@@ -10,4 +10,4 @@ class Config:
         f"{os.getenv('DB_HOST')}/{os.getenv('DB_NAME')}"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = os.getenv('SQLALCHEMY_TRACK_MODIFICATIONS', False)
-    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'your_secret_key')
+    JWT_KEY = os.getenv('JWT_KEY', 'your_secret_key')

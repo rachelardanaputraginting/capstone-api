@@ -23,10 +23,10 @@ class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     name = db.Column(db.String(50), nullable=False)
-    address = db.Column(db.String(255))
+    address = db.Column(db.String(255), nullable=False)
     email = db.Column(db.String(30), unique=True, nullable=False)
     username = db.Column(db.String(50), unique=True, nullable=False)
-    password = db.Column(db.String(20), nullable=False)
+    password = db.Column(db.String(255), nullable=False)
     email_verified_at = db.Column(db.TIMESTAMP)
     avatar = db.Column(db.String(255))
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.now())
@@ -50,6 +50,7 @@ class Resident(db.Model):
     place_of_birth = db.Column(db.String(50), nullable=False)
     gender = db.Column(db.Enum(Gender), nullable=False)
     ktp_verified_at = db.Column(db.TIMESTAMP)
+    phone_number = db.Column(db.String(13), unique=True, nullable=False)
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.now())
     updated_at = db.Column(db.TIMESTAMP, onupdate=db.func.now())
 
