@@ -1,93 +1,54 @@
-import os
-import secrets
-
-from flask import request, jsonify, Blueprint, render_template
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jti, get_jwt
-from werkzeug.security import check_password_hash, generate_password_hash
-from itsdangerous import URLSafeTimedSerializer
-from flask_mail import Message
-from datetime import datetime, timedelta
 import random
-
-from app.extensions import db, mail
-from app.models.models import Role, User, Resident, Institution
-# from app.models.LoginLog import LoginLog
-from app.models.reset_password import ResetPassword
-from utils import auth
-
-from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
-from app.schemas.register_schema import ResidentRegistrationSchema, InstitutionRegistrationSchema
-
-from marshmallow import ValidationError
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import create_access_token
+from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import IntegrityError
+from marshmallow import ValidationError
+
+from app.extensions import db
+from app.models.models import Role, User, Resident, Institution
+from app.schemas.register_schema import ResidentRegistrationSchema, InstitutionRegistrationSchema
 
 auth = Blueprint('auth', __name__)
 
-# Register
 @auth.route('/register', methods=['POST'])
 def register():
-    # Get the role from the request
     role = request.json.get('role')
-    
-    # Select appropriate schema based on role
-    if role == 'resident':
-        schema = ResidentRegistrationSchema()
-    elif role == 'institution':
-        schema = InstitutionRegistrationSchema()
-    else:
-        return jsonify({
-            'success': False, 
-            'message': 'Invalid role specified'
-        }), 400
 
-    # Validate the request data
+    # Pilih schema sesuai dengan role
+    if role == 'resident':
+        schema = ResidentRegistrationSchema(db_session=db.session)
+    elif role == 'institution':
+        schema = InstitutionRegistrationSchema(db_session=db.session)
+    else:
+        return jsonify({'success': False, 'message': 'Invalid role specified'}), 400
+
+    # Validasi data request
     try:
         data = schema.load(request.json)
     except ValidationError as err:
-        return jsonify({
-            'success': False,
-            'message': 'Validation error',
-            'errors': err.messages
-        }), 400
+        return jsonify({'success': False, 'errors': err.messages}), 400
 
-    # Check if a user with the given email or username already exists
-    existing_user = User.query.filter(
-        (User.email == data['email']) | (User.username == data['username'])
-    ).first()
+    # Buat role user
+    role_obj = Role.query.filter_by(name=role).first()
+    if not role_obj:
+        return jsonify({'success': False, 'message': 'Role not found'}), 404
 
-    if existing_user:
-        return jsonify({
-            'success': False,
-            'message': 'Email or username already exists'
-        }), 400
-
+    # Simpan data user ke database
     try:
-        # Find the appropriate role
-        role_obj = Role.query.filter_by(name=role).first()
-        if not role_obj:
-            return jsonify({
-                'success': False,
-                'message': 'Role not found'
-            }), 404
-
-        # Create the user
         new_user = User(
             name=data['name'],
             email=data['email'],
-            address=data['address'],
             username=data['username'],
-            password=generate_password_hash(data['password'])
+            password=generate_password_hash(data['password']),
+            address=data.get('address')
         )
-
         db.session.add(new_user)
         db.session.flush()
-        
-        # Attach the role to the user
-        # new_user.roles.append(role_obj)
-        print(new_user.id)
-        # Additional details based on role
+
+        # Tambahkan data spesifik sesuai role
         if role == 'resident':
-            resident = Resident(
+            new_resident = Resident(
                 user_id=new_user.id,
                 nik=data['nik'],
                 date_of_birth=data['date_of_birth'],
@@ -95,34 +56,25 @@ def register():
                 gender=data['gender'],
                 phone_number=data['phone_number']
             )
-            print(resident)
-            db.session.add(resident)
-        
+            db.session.add(new_resident)
         elif role == 'institution':
-            institution = Institution(
+            new_institution = Institution(
                 user_id=new_user.id,
-                service_id=data['service_id'],
                 description=data['description'],
                 latitude=data['latitude'],
                 longitude=data['longitude']
             )
-            db.session.add(institution)
+            db.session.add(new_institution)
 
-        # Generate email verification pin
-        verification_pin = str(random.randint(100000, 999999))
-        
-        # Send verification email
-        # send_verification_email(new_user.email, verification_pin)
-
-        # Commit database transaction
+        # Simpan semua perubahan ke database
         db.session.commit()
 
-        # Create access token
+        # Generate token
         access_token = create_access_token(identity=new_user.id)
 
         return jsonify({
             'success': True,
-            'message': 'User registered successfully. Please check your email for verification.',
+            'message': 'User registered successfully.',
             'user': {
                 'id': new_user.id,
                 'name': new_user.name,
@@ -134,8 +86,4 @@ def register():
 
     except IntegrityError:
         db.session.rollback()
-        return jsonify({
-            'success': False,
-            'message': 'Registration failed due to a database constraint'
-        }), 500
-# End Register
+        return jsonify({'success': False, 'message': 'Registration failed due to a database constraint'}), 500
