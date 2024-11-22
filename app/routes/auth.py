@@ -1,16 +1,23 @@
+import os
 import random
-from flask import Blueprint, request, jsonify
+from datetime import datetime
+from flask import Blueprint, request, jsonify, render_template
 from flask_jwt_extended import create_access_token
 from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import IntegrityError
 from marshmallow import ValidationError
+from itsdangerous import URLSafeTimedSerializer
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
+from utils.datetime import get_current_time_in_timezone
 
-from app.extensions import db
+from app.extensions import db, mail
+from flask_mail import Message
 from app.models.models import Role, User, Resident, Institution
 from app.schemas.register_schema import ResidentRegistrationSchema, InstitutionRegistrationSchema
 
 auth = Blueprint('auth', __name__)
 
+# Register User
 @auth.route('/register', methods=['POST'])
 def register():
     role = request.json.get('role')
@@ -71,6 +78,8 @@ def register():
 
         # Generate token
         access_token = create_access_token(identity=new_user.id)
+        
+        send_email_verify(new_user)
 
         return jsonify({
             'success': True,
@@ -87,3 +96,64 @@ def register():
     except IntegrityError:
         db.session.rollback()
         return jsonify({'success': False, 'message': 'Registration failed due to a database constraint'}), 500
+# End Register User
+
+# Send Email Verification
+def send_email_verify(user) :
+    token = generate_verify_token(user.email)
+    msg = Message(
+        subject="Verify Email Address",
+        recipients=[user.email],
+        sender=os.getenv('MAIL_USERNAME'),
+        html=render_template('verify_email.html', token=token, name=user.name)
+    )
+    mail.send(msg)
+# End Send Email Verification
+
+# Verify Email
+@auth.route('/verify/<token>', methods=['GET'])
+def verify_email(token):
+    try:
+        email = verify_token(token)
+        if not email:
+            return render_template('verify_expired.html'), 419
+            
+        user = db.session.query(User).filter_by(email=email).one()
+        
+        if user.email_verified_at:
+            return render_template('verify_already.html'), 200
+        
+        user.email_verified_at = get_current_time_in_timezone('Asia/Jakarta')  # WIB
+        db.session.commit()
+        
+        return render_template('verify_success.html'), 200
+        
+    except NoResultFound:
+        return render_template('verify_invalid.html'), 404
+    except MultipleResultsFound:
+        return render_template('verify_invalid.html'), 500
+    except Exception as e:
+        return render_template('verify_expired.html'), 419
+
+
+# Generate Verify Token
+def generate_verify_token(email) :
+    secret_key = os.getenv('SECRET_KEY') 
+    serializer = URLSafeTimedSerializer(secret_key)
+    return serializer.dumps(email, salt='salt_key')
+# End Generate Verify Token
+
+# Check Verify Token
+def verify_token(token, expiration=3600):
+    secret_key = os.getenv('SECRET_KEY')
+    serializer = URLSafeTimedSerializer(secret_key)
+    try:
+        email = serializer.loads(
+            token,
+            salt='salt_key',
+            max_age=expiration
+        )
+        return email
+    except:
+        return None
+# End CHeck Verify Token
