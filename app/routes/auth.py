@@ -2,8 +2,8 @@ import os
 import random
 from datetime import datetime
 from flask import Blueprint, request, jsonify, render_template
-from flask_jwt_extended import create_access_token
-from werkzeug.security import generate_password_hash
+from flask_jwt_extended import create_access_token, get_jti, get_jwt_identity, get_jwt
+from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.exc import IntegrityError
 from marshmallow import ValidationError
 from itsdangerous import URLSafeTimedSerializer
@@ -13,7 +13,9 @@ from utils.datetime import get_current_time_in_timezone
 from app.extensions import db, mail
 from flask_mail import Message
 from app.models.models import Role, User, Resident, Institution
+from app.models.login_log import LoginLog
 from app.schemas.register_schema import ResidentRegistrationSchema, InstitutionRegistrationSchema
+from app.schemas.login_schema import LoginSchema
 
 auth = Blueprint('auth', __name__)
 
@@ -135,6 +137,60 @@ def verify_email(token):
     except Exception as e:
         return render_template('verify_expired.html'), 419
 
+# Login
+@auth.route('/login', methods=['POST'])
+@auth.route('/login', methods=['POST'])
+def login():
+    # Masuk ke LoginSchema untuk validasi
+    schema = LoginSchema()
+    
+    # Validasi data request
+    try:
+        data = schema.load(request.json)
+    except ValidationError as err:
+        # Log error lebih detail untuk membantu debugging
+        print("Validation Error:", err.messages)
+        return jsonify({'success': False, 'errors': err.messages}), 400
+        
+    email = data['email']
+    password = data['password']
+
+    user = User.query.filter_by(email=email).first()
+
+    if user is not None and check_password_hash(user.password, str(password)):
+        if user.email_verified_at is None:
+            return jsonify(
+                status=False,
+                message="Please verify your email before logging in."
+            ), 400
+        
+        # Convert user.id to string to avoid the "Subject must be a string" error
+        access_token = create_access_token(identity=str(user.id), fresh=True)
+        
+        # Create Login Log
+        jti = get_jti(access_token)
+        try:
+            login_log = LoginLog(jti)
+        except Exception as e:
+            return jsonify(
+                success=False,
+                message="Login successful but failed to create log. Please try again."
+            ), 500
+        
+        response = jsonify(
+            success=True,
+            message="You have successfully logged in.",
+            data={
+                "access_token": access_token
+            }
+        )
+        return response, 200
+    else:
+        return jsonify(
+            success=False,
+            message="Login failed. Please check your credentials and try again."
+        ), 401
+# End Login
 
 # Generate Verify Token
 def generate_verify_token(email) :
