@@ -35,6 +35,19 @@ class User(db.Model):
 
     # Relationships
     roles = db.relationship('Role', secondary='user_roles', backref='users')
+    
+    def as_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "address": self.address,
+            "email": self.email,
+            "username": self.username,
+            "avatar": self.avatar,
+            "email_verified_at": self.email_verified_at,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
 
 class UserRole(db.Model):
     __tablename__ = 'user_roles'
