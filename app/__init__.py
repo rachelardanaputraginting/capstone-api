@@ -1,29 +1,29 @@
 from flask import Flask
-from config import Config
 from app.routes.auth import auth
-from app.extensions import db, migrate, jwt
+from app.extensions import db, migrate, jwt, mail
 from flask_seeder import FlaskSeeder
+from dotenv import load_dotenv
+from config import InitConfig
+from app.models import models
 
-def create_app(config_class=Config):
-    # Create Flask app instance
-    app = Flask(__name__)
-    
-    # Load configuration
-    app.config.from_object(config_class)
-    
+# Create Flask app instance
+app = Flask(__name__)
+# app.static_folder = 'static'
+
+seeder = FlaskSeeder()
+
+load_dotenv('.env')
+
+with app.app_context():
+    InitConfig(app)
+
     # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
-
-    # JWT
     jwt.init_app(app)
-    
-    # Import models to ensure they're loaded
-    from app.models import models
-    
-    seeder = FlaskSeeder()
+    mail.init_app(app)
     seeder.init_app(app, db)
-    
+        
     app.register_blueprint(auth, url_prefix='/auth')
     
     # with app.app_context():
@@ -38,4 +38,3 @@ def create_app(config_class=Config):
     # # app.register_blueprint(form_route, url_prefix='/form')
     # # app.register_blueprint(home_route, url_prefix='/')
     
-    return app
