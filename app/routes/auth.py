@@ -9,6 +9,7 @@ from marshmallow import ValidationError
 from itsdangerous import URLSafeTimedSerializer
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from utils.datetime import get_current_time_in_timezone
+from utils import auth
 
 from app.extensions import db, mail
 from flask_mail import Message
@@ -17,10 +18,10 @@ from app.models.login_log import LoginLog
 from app.schemas.register_schema import ResidentRegistrationSchema, InstitutionRegistrationSchema
 from app.schemas.login_schema import LoginSchema
 
-auth = Blueprint('auth', __name__)
+auth_bp = Blueprint('auth', __name__)
 
 # Register User
-@auth.route('/register', methods=['POST'])
+@auth_bp.route('/register', methods=['POST'])
 def register():
     role = request.json.get('role')
 
@@ -113,7 +114,7 @@ def send_email_verify(user) :
 # End Send Email Verification
 
 # Verify Email
-@auth.route('/verify/<token>', methods=['GET'])
+@auth_bp.route('/verify/<token>', methods=['GET'])
 def verify_email(token):
     try:
         email = verify_token(token)
@@ -138,8 +139,7 @@ def verify_email(token):
         return render_template('verify_expired.html'), 419
 
 # Login
-@auth.route('/login', methods=['POST'])
-@auth.route('/login', methods=['POST'])
+@auth_bp.route('/login', methods=['POST'])
 def login():
     # Masuk ke LoginSchema untuk validasi
     schema = LoginSchema()
@@ -148,8 +148,6 @@ def login():
     try:
         data = schema.load(request.json)
     except ValidationError as err:
-        # Log error lebih detail untuk membantu debugging
-        print("Validation Error:", err.messages)
         return jsonify({'success': False, 'errors': err.messages}), 400
         
     email = data['email']
@@ -192,6 +190,42 @@ def login():
         ), 401
 # End Login
 
+# Me
+@auth_bp.route('/me', methods=['GET'])
+@auth.login_required
+def me():
+    try:
+        # Ambil ID dari JWT
+        user_id = get_jwt_identity()
+        if not user_id:
+            return jsonify({
+                "status": False,
+                "message": "Authorization token is invalid or missing user identity."
+            }), 401
+
+        # Cari user berdasarkan ID
+        user = User.query.filter_by(id=user_id).first()
+
+        if not user:
+            return jsonify({
+                "status": False,
+                "message": "User not found. Please ensure the user exists."
+            }), 404
+
+        # Berikan respons jika user ditemukan
+        return jsonify({
+            "status": True,
+            "message": "Data loaded successfully.",
+            "data": user.as_dict()
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+        "status": False,
+            "message": "An unexpected error occurred.",
+            "error": str(e)
+        }), 500
+
 # Generate Verify Token
 def generate_verify_token(email) :
     secret_key = os.getenv('SECRET_KEY') 
@@ -212,4 +246,4 @@ def verify_token(token, expiration=3600):
         return email
     except:
         return None
-# End CHeck Verify Token
+# End Check Verify Token
