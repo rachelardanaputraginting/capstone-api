@@ -1,10 +1,11 @@
 from flask import Flask
-from app.routes.auth import auth
+from app.routes.auth import auth_bp
 from app.extensions import db, migrate, jwt, mail
 from flask_seeder import FlaskSeeder
 from dotenv import load_dotenv
 from config import InitConfig
 from app.models import models
+from utils.error_handlers import register_error_handlers
 
 # Create Flask app instance
 app = Flask(__name__)
@@ -23,8 +24,11 @@ with app.app_context():
     jwt.init_app(app)
     mail.init_app(app)
     seeder.init_app(app, db)
+    
+    # Register error handlers
+    register_error_handlers(app)
         
-    app.register_blueprint(auth, url_prefix='/auth')
+    app.register_blueprint(auth_bp, url_prefix='/auth')
     
     # with app.app_context():
 
