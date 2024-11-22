@@ -13,6 +13,7 @@ from .models import (
 )
 
 from .reset_password import ResetPassword
+from .login_log import LoginLog
 
 # Optional: If you need any model-related initialization
 def init_models(app):
