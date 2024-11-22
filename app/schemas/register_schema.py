@@ -40,8 +40,8 @@ class ResidentRegistrationSchema(Schema):
             raise ValidationError("NIK is already taken.")
         
     @validates("phone_number")
-    def validate_nik_unique(self, number_phone):
-        if self.db_session.query(Resident).filter_by(number_phone=number_phone).first():
+    def validate_nik_unique(self, phone_number):
+        if self.db_session.query(Resident).filter_by(phone_number=phone_number).first():
             raise ValidationError("Number Phone is already taken.")
 
     @validates_schema
