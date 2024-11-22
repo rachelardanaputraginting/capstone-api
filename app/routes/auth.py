@@ -13,7 +13,7 @@ from utils import auth
 
 from app.extensions import db, mail
 from flask_mail import Message
-from app.models.models import Role, User, Resident, Institution
+from app.models.models import Role, User, Resident, Institution, UserRole
 from app.models.login_log import LoginLog
 from app.schemas.register_schema import ResidentRegistrationSchema, InstitutionRegistrationSchema
 from app.schemas.login_schema import LoginSchema
@@ -75,6 +75,13 @@ def register():
                 longitude=data['longitude']
             )
             db.session.add(new_institution)
+        
+         # Tambahkan role ke tabel pivot `user_roles`
+        user_role = UserRole(
+            user_id=new_user.id,
+            role_id=role_obj.id
+        )
+        db.session.add(user_role)
 
         # Simpan semua perubahan ke database
         db.session.commit()
@@ -225,6 +232,40 @@ def me():
             "message": "An unexpected error occurred.",
             "error": str(e)
         }), 500
+
+# Logout
+@auth_bp.route('/logout', methods=['POST'])
+@auth.login_required
+def logout():
+    try:
+        # Ambil token identifier dari JWT
+        token_identifier = get_jwt()['jti']
+
+        # Cari log berdasarkan token
+        log = LoginLog.query.filter_by(token_identifier=token_identifier).first()
+
+        if log is None:
+            return jsonify(
+                status=False,
+                message="Logout failed. No active session found for this token."
+            ), 400
+
+        # Hapus log / tandai logout
+        log.destroy()  # Pastikan `destroy` method menangani logika delete dengan benar.
+
+        return jsonify(
+            status=True,
+            message="Successfully logged out."
+        ), 200
+
+    except Exception as e:
+        # Log the error for debugging purposes
+        print(f"Error during logout: {e}")
+
+        return jsonify(
+            status=False,
+            message="An error occurred during logout. Please try again later."
+        ), 500
 
 # Generate Verify Token
 def generate_verify_token(email) :
