@@ -4,10 +4,10 @@ from sqlalchemy.orm import Session
 from app.models.models import User, Resident, Institution
 
 class ResidentRegistrationSchema(Schema):
-    name = fields.String(required=True, validate=[validate.Length(min=1, max=255)])
-    email = fields.Email(required=True, validate=[validate.Length(max=255)])
-    username = fields.String(required=True, validate=[validate.Length(min=1, max=255)])
-    address = fields.String(allow_none=True, validate=[validate.Length(max=500)])
+    name = fields.String(required=True, validate=[validate.Length(min=1, max=50)])
+    email = fields.Email(required=True, validate=[validate.Length(max=50)])
+    username = fields.String(required=True, validate=[validate.Length(min=1, max=30)])
+    address = fields.String(allow_none=True, validate=[validate.Length(max=100)])
     password = fields.String(required=True, validate=[validate.Length(min=8)])
     password_confirmation = fields.String(required=True)
     role = fields.String(required=True, validate=validate.OneOf(['resident']))
