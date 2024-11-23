@@ -84,6 +84,7 @@ class Institution(db.Model):
     __tablename__ = 'institutions'
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     user_id = db.Column(db.BigInteger, db.ForeignKey('users.id'), nullable=False)
+    description = db.Column(db.Text, nullable=False)
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.now())
