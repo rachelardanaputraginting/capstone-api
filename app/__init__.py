@@ -2,6 +2,7 @@ from flask import Flask
 
 # router
 from app.routes.auth import auth_bp
+from app.routes.profile import user_route
 from app.routes.institution.driver import driver_route
 from app.routes.institution.institution import institution_route
 
@@ -34,6 +35,7 @@ with app.app_context():
     register_error_handlers(app)
         
     app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(user_route, url_prefix='/profiles')
     app.register_blueprint(institution_route, url_prefix='/institutions')
     app.register_blueprint(driver_route, url_prefix='/institutions/drivers')
     
