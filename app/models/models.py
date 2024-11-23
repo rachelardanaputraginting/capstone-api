@@ -24,7 +24,7 @@ class User(db.Model):
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     name = db.Column(db.String(50), nullable=False)
     address = db.Column(db.String(255), nullable=False)
-    email = db.Column(db.String(30), unique=True, nullable=False)
+    email = db.Column(db.String(50), unique=True, nullable=False)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     email_verified_at = db.Column(db.TIMESTAMP)
@@ -97,6 +97,7 @@ class Driver(db.Model):
     __tablename__ = 'drivers'
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     institution_id = db.Column(db.BigInteger, db.ForeignKey('institutions.id'), nullable=False)
+    phone_number = db.Column(db.String(13), unique=True, nullable=False)
     user_id = db.Column(db.BigInteger, db.ForeignKey('users.id'), nullable=False)
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.now())
     updated_at = db.Column(db.TIMESTAMP, onupdate=db.func.now())
