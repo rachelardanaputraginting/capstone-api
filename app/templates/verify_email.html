@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verify Your Email</title>
+    <title>Verifikasi Email Anda</title>
     <style>
         * {
             margin: 0;
@@ -99,13 +99,13 @@
             <h1>InstaHelp</h1>
         </header>
         <div class="content">
-            <h3>Hello, {{ name }}</h3>
-            <p>Thank you for registering. Please click the link below to verify your email.</p>
-            <a href="{{ url_for('auth.verify_email', token=token, _external=True) }}" class="button">Verify Email</a>
+            <h3>Halo, {{ name }}</h3>
+            <p>Terima kasih telah mendaftar. Silakan klik tautan di bawah ini untuk memverifikasi email Anda.</p>
+            <a href="{{ url_for('auth.verify_email', token=token, _external=True) }}" class="button">Verifikasi Email</a>
         </div>
         <footer>
-            <p class="team-sign">Best regards,<br><strong>InstHelp Team</strong></p>
-            <p>Copyright &copy;2024 InstaHelp, All rights reserved.</p>
+            <p class="team-sign">Salam hangat,<br><strong>Tim InstaHelp</strong></p>
+            <p>Hak Cipta &copy;2024 InstaHelp, Semua hak cipta dilindungi.</p>
         </footer>
     </div>   
 </body>
