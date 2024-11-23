@@ -33,9 +33,14 @@ class User(db.Model):
     updated_at = db.Column(db.TIMESTAMP, onupdate=db.func.now())
     deleted_at = db.Column(db.TIMESTAMP)
 
-    # Relationships
+    # Relationships (one-to-one)
+    driver = db.relationship('Driver', back_populates='user', uselist=False)
+    resident = db.relationship('Resident', back_populates='user', uselist=False)
+    institution = db.relationship('Institution', back_populates='user', uselist=False)
+    administration = db.relationship('Administration', back_populates='user', uselist=False)
+
     roles = db.relationship('Role', secondary='user_roles', backref='users')
-    
+
     def as_dict(self):
         return {
             "id": self.id,
@@ -68,7 +73,7 @@ class Resident(db.Model):
     updated_at = db.Column(db.TIMESTAMP, onupdate=db.func.now())
 
     # Relationship
-    user = db.relationship('User', backref='resident')
+    user = db.relationship('User', back_populates='resident', uselist=False)
 
 class Administration(db.Model):
     __tablename__ = 'administrations'
@@ -78,7 +83,7 @@ class Administration(db.Model):
     updated_at = db.Column(db.TIMESTAMP, onupdate=db.func.now())
 
     # Relationship
-    user = db.relationship('User', backref='administration')
+    user = db.relationship('User', back_populates='administration', uselist=False)
 
 class Institution(db.Model):
     __tablename__ = 'institutions'
@@ -91,7 +96,7 @@ class Institution(db.Model):
     updated_at = db.Column(db.TIMESTAMP, onupdate=db.func.now())
 
     # Relationship
-    user = db.relationship('User', backref='institution')
+    user = db.relationship('User', back_populates='institution', uselist=False)
 
 class Driver(db.Model):
     __tablename__ = 'drivers'
@@ -103,7 +108,7 @@ class Driver(db.Model):
     updated_at = db.Column(db.TIMESTAMP, onupdate=db.func.now())
 
     # Relationships
-    user = db.relationship('User', backref='driver')
+    user = db.relationship('User', back_populates='driver', uselist=False)
     institution = db.relationship('Institution', backref='drivers')
 
 class Vehicle(db.Model):
