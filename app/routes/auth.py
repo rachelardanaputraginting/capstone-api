@@ -1,4 +1,5 @@
 import os
+import secrets
 import random
 from datetime import datetime
 from flask import Blueprint, request, jsonify, render_template
@@ -15,8 +16,13 @@ from app.extensions import db, mail
 from flask_mail import Message
 from app.models.models import Role, User, Resident, Institution, UserRole
 from app.models.login_log import LoginLog
-from app.schemas.register_schema import ResidentRegistrationSchema, InstitutionRegistrationSchema
-from app.schemas.login_schema import LoginSchema
+from app.models.reset_password import ResetPassword
+
+# import schemas
+from app.schemas.auth.register_schema import ResidentRegistrationSchema, InstitutionRegistrationSchema
+from app.schemas.auth.login_schema import LoginSchema
+from app.schemas.auth.forgot_password_schema import ForgotPasswordSchema
+from app.schemas.auth.reset_password_schema import ResetPasswordSchema
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -119,6 +125,28 @@ def send_email_verify(user) :
     )
     mail.send(msg)
 # End Send Email Verification
+
+# Send Email Forgot Password
+def send_forgot_password(user, reset_token):
+    # URL untuk aplikasi mobile
+    app_link = f"instahelp://reset-password?token={reset_token}"
+
+    # URL fallback ke web jika aplikasi tidak terinstal
+    # web_link = f"https://instahelp.com/reset-password?token={reset_token}"
+
+    msg = Message(
+        subject="Forgot Password",
+        recipients=[user.email],
+        sender=os.getenv('MAIL_USERNAME'),
+        html=render_template(
+            'forgot_password.html',
+            name=user.name,
+            app_link=app_link,
+            # web_link=web_link
+        )
+    )
+    mail.send(msg)
+# End Send Email Forgot Password
 
 # Verify Email
 @auth_bp.route('/verify/<token>', methods=['GET'])
@@ -266,6 +294,77 @@ def logout():
             status=False,
             message="An error occurred during logout. Please try again later."
         ), 500
+
+# Forgot Password
+@auth_bp.route('/forgot-password', methods=['POST'])
+def forgotPassword():
+    schema = ForgotPasswordSchema()
+    
+    # Validasi data request
+    try:
+        data = schema.load(request.json)
+    except ValidationError as err:
+        return jsonify({'success': False, 'errors': err.messages}), 400
+
+    email = data['email']
+    user = User.query.filter_by(email=email).first()
+
+    if user:
+        reset_token = secrets.token_hex(16)  # Generate token
+        reset_entry = ResetPassword(email=email, reset_token=reset_token)  # Simpan token di database
+        db.session.add(reset_entry)
+        db.session.commit()
+        
+        send_forgot_password(user, reset_token)
+
+        return jsonify(
+            status=True,
+            message="Reset password email has been sent successfully.",
+            data={"reset_token": reset_token}
+        ), 200
+
+    return jsonify(
+        status=False,
+        message="Account not found for the provided email."
+    ), 400
+# End Forgot Password
+
+# Reset Password
+@auth_bp.route('/reset-password/<token>', methods=['POST'])
+def resetPassword(token):
+    schema = ResetPasswordSchema()
+    
+    # Validasi data request
+    try:
+        data = schema.load(request.json)
+    except ValidationError as err:
+        return jsonify({'success': False, 'errors': err.messages}), 400
+
+    rp = ResetPassword.query.filter_by(reset_token=token).first()
+
+    if rp:
+        password = data['password']
+        user = User.query.filter_by(email=rp.email).first()
+
+        if user:
+            # Update password
+            user.password = generate_password_hash(password.strip())
+            db.session.commit()
+
+            # Hapus token reset dari database
+            db.session.delete(rp)
+            db.session.commit()
+
+            return jsonify(
+                status=True,
+                message='Password successfully changed.'
+            ), 200
+
+    return jsonify(
+        status=False,
+        message='Token is invalid.'
+    ), 400
+# End Reset Password
 
 # Generate Verify Token
 def generate_verify_token(email) :
