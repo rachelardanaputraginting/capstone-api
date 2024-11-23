@@ -64,6 +64,54 @@ def get_all_drivers():
     ), 200
 # End Get All 
 
+# Get By ID
+@driver_route.route('/<int:driver_id>', methods=['GET'])
+@auth.login_required
+def get_driver_by_id(driver_id):
+    # Query untuk mendapatkan data driver berdasarkan ID
+    driver = db.session.query(
+        Driver.id,
+        User.id.label('user_id'),
+        User.username,
+        User.email,
+        User.avatar,
+        User.address,
+        User.name,
+        Driver.phone_number
+    ).join(User, Driver.user_id == User.id) \
+     .filter(Driver.id == driver_id) \
+     .first()
+
+    # Jika data tidak ditemukan
+    if not driver:
+        return jsonify(
+            status=False,
+            message='Driver not found.',
+            data=None
+        ), 404
+
+    # Menyiapkan data untuk respons
+    driver_data = {
+        "id": driver.id,
+        "user": {
+            "id": driver.user_id,
+            "username": driver.username,
+            "email": driver.email,
+            "address": driver.address,
+            "avatar": driver.avatar,
+            "name": driver.name,
+        },
+        "phone_number": driver.phone_number,
+    }
+
+    # Mengembalikan respons
+    return jsonify(
+        status=True,
+        message='Data loaded successfully.',
+        data=driver_data
+    ), 200
+# End Get By ID
+
 # Create
 @driver_route.route('/', methods=['POST'])
 @auth.login_required
@@ -198,6 +246,45 @@ def update_driver(driver_id):
             'message': f'An error occurred: {str(e)}'
         }), 500
 # End Update
+
+# Delete
+@driver_route.route('/<int:driver_id>', methods=['DELETE'])
+@auth.login_required
+def delete_driver(driver_id):
+    try:
+        # Query driver berdasarkan ID
+        driver = Driver.query.get_or_404(driver_id)
+        user_id = driver.user_id  # Simpan user_id untuk menghapus data user
+        
+        # Mulai transaksi
+        db.session.begin_nested()
+
+        # Hapus role dari tabel UserRole
+        UserRole.query.filter_by(user_id=user_id).delete()
+
+        # Hapus data Driver
+        db.session.delete(driver)
+
+        # Hapus data User
+        user = User.query.get(user_id)
+        if user:
+            db.session.delete(user)
+
+        # Commit transaksi
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Driver deleted successfully.'
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'An error occurred: {str(e)}'
+        }), 500
+# End Delete
 
 # Send Email Verification
 def send_email_verify(user) :
