@@ -1,18 +1,25 @@
-from marshmallow import Schema, fields, validate, ValidationError
+from marshmallow import Schema, fields, validate, ValidationError, EXCLUDE
 from marshmallow.decorators import validates_schema, validates
 from sqlalchemy.orm import Session
 from app.models.models import User, Driver, Institution, Resident
-from sqlalchemy import and_, not_
+from sqlalchemy import and_
 
 class UpdateDriverSchema(Schema):
-    name = fields.String(required=True, validate=[validate.Length(min=1, max=255)])
-    email = fields.Email(required=True, validate=[validate.Length(max=255)])
-    username = fields.String(required=True, validate=[validate.Length(min=1, max=255)])
-    address = fields.String(required=True, validate=[validate.Length(max=500)])
-    password = fields.String(validate=[validate.Length(min=8)])
-    password_confirmation = fields.String()
-    phone_number = fields.String(required=True)
-    institution_id = fields.Integer(required=True)
+    class Meta:
+        unknown = EXCLUDE
+
+    # Base user fields
+    name = fields.String(validate=[validate.Length(min=1, max=255)], required=False, allow_none=False)
+    email = fields.Email(validate=[validate.Length(max=255)], required=False, allow_none=False)
+    username = fields.String(validate=[validate.Length(min=1, max=255)], required=False, allow_none=False)
+    address = fields.String(validate=[validate.Length(min=1, max=500)], required=False, allow_none=False)
+    
+    # Driver specific fields
+    phone_number = fields.String(validate=[
+        validate.Length(min=10, max=13),
+        validate.Regexp(r'^\d+$', error='Phone number must contain only digits')
+    ], required=False, allow_none=False)
+    institution_id = fields.Integer(required=False, allow_none=False)
 
     def __init__(self, db_session: Session, driver_id: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -24,6 +31,9 @@ class UpdateDriverSchema(Schema):
 
     @validates("email")
     def validate_email_unique(self, email):
+        if not email:  # Skip validation if email not provided
+            return
+            
         if not self.current_user:
             raise ValidationError("Current user not found")
             
@@ -36,10 +46,13 @@ class UpdateDriverSchema(Schema):
         ).first()
         
         if existing_user:
-            raise ValidationError("Email is already taken.")
+            raise ValidationError("Email is already taken")
 
     @validates("username")
     def validate_username_unique(self, username):
+        if not username:  # Skip validation if username not provided
+            return
+            
         if not self.current_user:
             raise ValidationError("Current user not found")
             
@@ -52,10 +65,13 @@ class UpdateDriverSchema(Schema):
         ).first()
         
         if existing_user:
-            raise ValidationError("Username is already taken.")
+            raise ValidationError("Username is already taken")
     
     @validates("phone_number")
     def validate_phone_number_unique(self, phone_number):
+        if not phone_number:  # Skip validation if phone_number not provided
+            return
+            
         if not self.current_driver:
             raise ValidationError("Current driver not found")
             
@@ -68,7 +84,7 @@ class UpdateDriverSchema(Schema):
         ).first()
         
         if existing_driver:
-            raise ValidationError("Phone number is already taken by another driver.")
+            raise ValidationError("Phone number is already taken by another driver")
 
         # Check if phone number exists in residents table
         existing_resident = self.db_session.query(Resident).filter(
@@ -76,13 +92,16 @@ class UpdateDriverSchema(Schema):
         ).first()
         
         if existing_resident:
-            raise ValidationError("Phone number is already taken by a resident.")
+            raise ValidationError("Phone number is already taken by a resident")
     
     @validates('institution_id')
     def validate_institution_id(self, value):
+        if not value:  # Skip validation if institution_id not provided
+            return
+            
         institution = self.db_session.query(Institution).get(value)
         if not institution:
-            raise ValidationError("Institution with the given ID does not exist.")
+            raise ValidationError("Institution with the given ID does not exist")
 
     @validates_schema
     def validate_passwords_match(self, data, **kwargs):
