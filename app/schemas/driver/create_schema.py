@@ -1,7 +1,7 @@
 from marshmallow import Schema, fields, validate, ValidationError
 from marshmallow.decorators import validates_schema, validates
 from sqlalchemy.orm import Session
-from app.models.models import User, Driver, Institution
+from app.models.models import User, Driver, Institution, Resident
 
 class CreateDriverSchema(Schema):
     name = fields.String(required=True, validate=[validate.Length(min=1, max=255)])
@@ -21,17 +21,19 @@ class CreateDriverSchema(Schema):
 
     @validates("email")
     def validate_email_unique(self, email):
-        if self.db_session.query(Driver).join(User).filter(User.email == email).first():
+        if self.db_session.query(User).filter(User.email == email).first():
             raise ValidationError("Email is already taken.")
 
     @validates("username")
     def validate_username_unique(self, username):
-        if self.db_session.query(Driver).join(User).filter(User.username == username).first():
+        if self.db_session.query(User).filter(User.username == username).first():
             raise ValidationError("Username is already taken.")
     
     @validates("phone_number")
     def validate_nik_unique(self, phone_number):
         if self.db_session.query(Driver).filter_by(phone_number=phone_number).first():
+            raise ValidationError("Number Phone is already taken.")
+        elif self.db_session.query(Resident).filter_by(phone_number=phone_number).first():
             raise ValidationError("Number Phone is already taken.")
     
     @validates('institution_id')

@@ -1,7 +1,7 @@
 from marshmallow import Schema, fields, validate, ValidationError
 from marshmallow.decorators import validates_schema, validates
 from sqlalchemy.orm import Session
-from app.models.models import User, Resident, Institution
+from app.models.models import User, Resident, Institution, Driver
 
 class ResidentRegistrationSchema(Schema):
     name = fields.String(required=True, validate=[validate.Length(min=1, max=50)])
@@ -26,12 +26,12 @@ class ResidentRegistrationSchema(Schema):
 
     @validates("email")
     def validate_email_unique(self, email):
-        if self.db_session.query(Resident).join(User).filter(User.email == email).first():
+        if self.db_session.query(User).filter(User.email == email).first():
             raise ValidationError("Email is already taken.")
 
     @validates("username")
     def validate_username_unique(self, username):
-        if self.db_session.query(Resident).join(User).filter(User.username == username).first():
+        if self.db_session.query(User).filter(User.username == username).first():
             raise ValidationError("Username is already taken.")
 
     @validates("nik")
@@ -42,6 +42,8 @@ class ResidentRegistrationSchema(Schema):
     @validates("phone_number")
     def validate_nik_unique(self, phone_number):
         if self.db_session.query(Resident).filter_by(phone_number=phone_number).first():
+            raise ValidationError("Number Phone is already taken.")
+        elif self.db_session.query(Driver).filter_by(phone_number=phone_number).first():
             raise ValidationError("Number Phone is already taken.")
 
     @validates_schema
@@ -57,7 +59,6 @@ class InstitutionRegistrationSchema(Schema):
     address = fields.String(required=True, validate=[validate.Length(max=500)])
     password = fields.String(required=True, validate=[validate.Length(min=8)])
     password_confirmation = fields.String(required=True)
-    phone_number = fields.String(required=True)
     role = fields.String(required=True, validate=validate.OneOf(['institution']))
 
     # Institution-specific fields
@@ -72,12 +73,12 @@ class InstitutionRegistrationSchema(Schema):
 
     @validates("email")
     def validate_email_unique(self, email):
-        if self.db_session.query(Institution).join(User).filter(User.email == email).first():
+        if self.db_session.query(User).filter(User.email == email).first():
             raise ValidationError("Email is already taken.")
 
     @validates("username")
     def validate_username_unique(self, username):
-        if self.db_session.query(Institution).join(User).filter(User.username == username).first():
+        if self.db_session.query(User).filter(User.username == username).first():
             raise ValidationError("Username is already taken.")
 
     @validates_schema
