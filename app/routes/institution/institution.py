@@ -62,3 +62,8 @@ def get_all_institutions():
         data=institution_data
     ), 200
 # End Get All 
+
+# Create 
+def add_institution():
+    return "Halo"
+#End Create
