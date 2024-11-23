@@ -13,6 +13,7 @@ from app.models.models import Driver, User, Role, UserRole, Institution
 
 # schemas
 from app.schemas.driver.create_schema import CreateDriverSchema
+from app.schemas.driver.update_schema import UpdateDriverSchema
 
 driver_route = Blueprint('institutions/drivers', __name__)
 
@@ -137,6 +138,66 @@ def add_driver():
         db.session.rollback()
         return jsonify({'success': False, 'message': 'Add Driver failed due to a database constraint'}), 500
 # End Create
+
+# Update
+@driver_route.route('/<int:driver_id>', methods=['PUT'])
+@auth.login_required
+def update_driver(driver_id):
+    try:
+        # Get driver and related user
+        driver = Driver.query.get_or_404(driver_id)
+        user = User.query.get_or_404(driver.user_id)
+
+        # Create and validate schema
+        schema = UpdateDriverSchema(db_session=db.session, driver_id=driver_id)
+        data = schema.load(request.json)
+
+        # Begin transaction
+        db.session.begin_nested()
+
+        # Update user data
+        user.name = data['name']
+        user.email = data['email']
+        user.username = data['username']
+        user.address = data['address']
+
+        if data.get('password'):
+            user.password = generate_password_hash(data['password'])
+
+        # Update driver data
+        driver.phone_number = data['phone_number']
+        driver.institution_id = data['institution_id']
+
+        # Commit changes
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Driver updated successfully',
+            'data': {
+                'user': user.as_dict(),
+                'driver': {
+                    'id': driver.id,
+                    'phone_number': driver.phone_number,
+                    'institution_id': driver.institution_id
+                }
+            }
+        }), 200
+
+    except ValidationError as err:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': 'Validation error',
+            'errors': err.messages
+        }), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'An error occurred: {str(e)}'
+        }), 500
+# End Update
 
 # Send Email Verification
 def send_email_verify(user) :
