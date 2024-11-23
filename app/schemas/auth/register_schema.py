@@ -57,6 +57,7 @@ class InstitutionRegistrationSchema(Schema):
     address = fields.String(required=True, validate=[validate.Length(max=500)])
     password = fields.String(required=True, validate=[validate.Length(min=8)])
     password_confirmation = fields.String(required=True)
+    phone_number = fields.String(required=True)
     role = fields.String(required=True, validate=validate.OneOf(['institution']))
 
     # Institution-specific fields
