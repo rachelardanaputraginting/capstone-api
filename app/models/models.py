@@ -98,7 +98,6 @@ class Driver(db.Model):
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     institution_id = db.Column(db.BigInteger, db.ForeignKey('institutions.id'), nullable=False)
     user_id = db.Column(db.BigInteger, db.ForeignKey('users.id'), nullable=False)
-    position = db.Column(db.String(50), nullable=False)
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.now())
     updated_at = db.Column(db.TIMESTAMP, onupdate=db.func.now())
 
