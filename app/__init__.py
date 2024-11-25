@@ -4,6 +4,7 @@ from flask import Flask
 from app.routes.auth import auth_bp
 from app.routes.profile import user_route
 from app.routes.institution.driver import driver_route
+from app.routes.institution.vehicle import vehicle_route
 from app.routes.institution.institution import institution_route
 
 from app.extensions import db, migrate, jwt, mail
@@ -38,6 +39,7 @@ with app.app_context():
     app.register_blueprint(user_route, url_prefix='/profiles')
     app.register_blueprint(institution_route, url_prefix='/institutions')
     app.register_blueprint(driver_route, url_prefix='/institutions/drivers')
+    app.register_blueprint(vehicle_route, url_prefix='/institutions/vehicles')
     
     # with app.app_context():
 
