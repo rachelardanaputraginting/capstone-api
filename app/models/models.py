@@ -97,6 +97,7 @@ class Institution(db.Model):
 
     # Relationship
     user = db.relationship('User', back_populates='institution', uselist=False)
+    vehicles = db.relationship('Vehicle', back_populates='institution', lazy=True)
 
 class Driver(db.Model):
     __tablename__ = 'drivers'
@@ -108,23 +109,27 @@ class Driver(db.Model):
     updated_at = db.Column(db.TIMESTAMP, onupdate=db.func.now())
 
     # Relationships
+    vehicles = db.relationship('Vehicle', back_populates='driver')
     user = db.relationship('User', back_populates='driver', uselist=False)
     institution = db.relationship('Institution', backref='drivers')
 
 class Vehicle(db.Model):
     __tablename__ = 'vehicles'
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    institution_id = db.Column(db.BigInteger, db.ForeignKey('institutions.id'), nullable=False)
-    driver_id = db.Column(db.BigInteger, db.ForeignKey('drivers.id'), nullable=False)
-    is_ready = db.Column(db.Boolean, default=True)
-    picture = db.Column(db.String(255))
-    created_at = db.Column(db.TIMESTAMP, server_default=db.func.now())
-    updated_at = db.Column(db.TIMESTAMP, onupdate=db.func.now())
-    deleted_at = db.Column(db.TIMESTAMP)
+    institution_id = db.Column(db.BigInteger, db.ForeignKey('institutions.id'), nullable=False, index=True)
+    driver_id = db.Column(db.BigInteger, db.ForeignKey('drivers.id'), nullable=False, index=True)
+    name = db.Column(db.String(50), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    is_ready = db.Column(db.Boolean, nullable=False, default=True)
+    picture = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.TIMESTAMP, server_default=db.func.now(), nullable=False)
+    updated_at = db.Column(db.TIMESTAMP, onupdate=db.func.now(), nullable=True, server_default=db.func.now())
 
-    # Relationships
-    institution = db.relationship('Institution', backref='vehicles')
-    driver = db.relationship('Driver', backref='vehicles')
+    deleted_at = db.Column(db.TIMESTAMP, nullable=True)
+
+    # Optional: Define relationships for easier query building
+    institution = db.relationship('Institution', back_populates='vehicles')
+    driver = db.relationship('Driver', back_populates='vehicles')
 
 class Incident(db.Model):
     __tablename__ = 'incidents'
