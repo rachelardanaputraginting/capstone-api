@@ -1,5 +1,5 @@
 venv/
 public/uploads/*
-# .env
+.env
 **/__pycache__/
 credentials.json
