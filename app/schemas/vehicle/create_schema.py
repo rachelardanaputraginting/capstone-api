@@ -1,7 +1,7 @@
 from marshmallow import Schema, fields, validate, ValidationError
-from marshmallow.decorators import validates
+from marshmallow.decorators import validates, validates_schema
 from sqlalchemy.orm import Session
-from app.models.models import Driver, Institution
+from app.models.models import Driver, Institution, Vehicle
 
 class CreateVehicleSchema(Schema):
     name = fields.String(required=True, validate=[validate.Length(min=1, max=50)])
@@ -23,11 +23,25 @@ class CreateVehicleSchema(Schema):
         """Validate that the institution ID exists in the database."""
         institution = self.db_session.query(Institution).get(value)
         if institution is None:
-            raise ValidationError("Institution with the given ID does not exist.")
+            raise ValidationError("Institusi dengan ID yang diberikan tidak ada.")
 
     @validates('driver_id')
     def validate_driver_id(self, value):
         """Validate that the driver ID exists in the database."""
         driver = self.db_session.query(Driver).get(value)
         if driver is None:
-            raise ValidationError("Driver with the given ID does not exist.")
+            raise ValidationError("Pengemudi dengan ID yang diberikan tidak ada.")
+    
+    @validates_schema
+    def validate_unique_constraints(self, data, **kwargs):
+        # Tambahkan validasi tambahan jika dipe rlukan
+        # Misalnya, memastikan driver tidak digunakan di kendaraan lain
+        if 'driver_id' in data:
+            existing_vehicle = self.db_session.query(Vehicle).filter(
+                Vehicle.driver_id == data['driver_id']
+            ).first()
+            
+            if existing_vehicle:
+                raise ValidationError({
+                    'driver_id': 'Driver sudah terdaftar pada kendaraan lain'
+                })

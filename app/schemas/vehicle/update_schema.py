@@ -1,7 +1,7 @@
 from marshmallow import Schema, fields, validate, ValidationError, EXCLUDE
 from marshmallow.decorators import validates, validates_schema
 from sqlalchemy.orm import Session
-from app.models.models import Driver, Institution, Vehicle
+from app.models.models import Institution, Vehicle
 
 class UpdateVehicleSchema(Schema):
     class Meta:
@@ -41,6 +41,21 @@ class UpdateVehicleSchema(Schema):
     @validates('driver_id')
     def validate_driver_id(self, value):
         if value is not None:  # Hanya validasi jika nilai diberikan
-            driver = self.db_session.query(Driver).get(value)
-            if not driver:
-                raise ValidationError("Driver dengan ID tersebut tidak ditemukan")
+            vehicle = self.db_session.query(Vehicle).get(value)
+            if not vehicle:
+                raise ValidationError("Vehicle dengan ID tersebut tidak ditemukan")
+    
+    @validates_schema
+    def validate_unique_constraints(self, data, **kwargs):
+        # Tambahkan validasi tambahan jika diperlukan
+        # Misalnya, memastikan driver tidak digunakan di kendaraan lain
+        if 'driver_id' in data:
+            existing_vehicle = self.db_session.query(Vehicle).filter(
+                Vehicle.driver_id == data['driver_id'],
+                Vehicle.id != self.vehicle_id
+            ).first()
+            
+            if existing_vehicle:
+                raise ValidationError({
+                    'driver_id': 'Driver sudah terdaftar pada kendaraan lain'
+                })
