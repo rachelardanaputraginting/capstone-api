@@ -4,9 +4,6 @@ from marshmallow import ValidationError
 from flask import Blueprint, request, jsonify, render_template
 from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import IntegrityError
-from flask_jwt_extended import create_access_token
-from itsdangerous import URLSafeTimedSerializer
-from flask_mail import Message
 
 from utils import auth
 from app.models.models import Vehicle, User, Vehicle, Institution, Driver
@@ -124,3 +121,60 @@ def add_vehicles():
         db.session.rollback()
         return jsonify({'success': False, 'message': 'Add Vehicle failed due to a database constraint'}), 500
 # End Create
+
+# Update 
+@vehicle_route.route('/<int:vehicle_id>', methods=['PUT'])
+@auth.login_required
+def update_vehicle(vehicle_id):
+    try:
+        # Get vehicle 
+        vehicle = Vehicle.query.get_or_404(vehicle_id)
+
+        # Prepare the request data
+        request_data = request.json or {}
+
+        # Create schema with current vehicle data
+        schema = UpdateVehicleSchema(db_session=db.session, vehicle_id=vehicle_id)
+        data = schema.load(request.json)
+
+       # Update vehicle data with fallback to existing values
+        vehicle.name = data.get('name', vehicle.name)
+        vehicle.description = data.get('description', vehicle.description)
+        vehicle.institution_id = data.get('institution_id', vehicle.institution_id)
+        vehicle.driver_id = data.get('driver_id', vehicle.driver_id)
+        vehicle.is_ready = data.get('is_ready', vehicle.is_ready)
+        vehicle.picture = data.get('picture', vehicle.picture)
+
+        # Commit changes
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Vehicle updated successfully',
+            'data': {
+                'vehicle': {
+                    'id': vehicle.id,
+                    'name': vehicle.name,
+                    'description': vehicle.description,
+                    'institution_id': vehicle.institution_id,
+                    'driver_id': vehicle.driver_id,
+                    'is_ready': vehicle.is_ready,
+                    'picture': vehicle.picture
+                }
+            }
+        }), 200
+
+    except ValidationError as err:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': 'Validation error',
+            'errors': err.messages
+        }), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'An error occurred: {str(e)}'
+        }), 500
+# End Update 

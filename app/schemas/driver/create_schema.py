@@ -4,15 +4,48 @@ from sqlalchemy.orm import Session
 from app.models.models import User, Driver, Institution, Resident
 
 class CreateDriverSchema(Schema):
-    name = fields.String(required=True, validate=[validate.Length(min=1, max=255)])
-    email = fields.Email(required=True, validate=[validate.Length(max=255)])
-    username = fields.String(required=True, validate=[validate.Length(min=1, max=255)])
-    address = fields.String(required=True, validate=[validate.Length(max=500)])
-    password = fields.String(required=True, validate=[validate.Length(min=8)])
-    password_confirmation = fields.String(required=True)
-    role = fields.String(required=True, validate=validate.OneOf(['driver']))
-    phone_number = fields.String(required=True)
-    institution_id = fields.Integer(required=True)
+    name = fields.String(
+        required=True,
+        validate=[validate.Length(min=1, max=255, error="Nama harus antara 1 hingga 255 karakter.")],
+        error_messages={"required": "Nama wajib diisi."}
+    )
+    email = fields.Email(
+        required=True,
+        validate=[validate.Length(max=255, error="Email tidak boleh lebih dari 255 karakter.")],
+        error_messages={"required": "Email wajib diisi.", "invalid": "Format email tidak valid."}
+    )
+    username = fields.String(
+        required=True,
+        validate=[validate.Length(min=1, max=255, error="Username harus antara 1 hingga 255 karakter.")],
+        error_messages={"required": "Username wajib diisi."}
+    )
+    address = fields.String(
+        required=True,
+        validate=[validate.Length(max=500, error="Alamat tidak boleh lebih dari 500 karakter.")],
+        error_messages={"required": "Alamat wajib diisi."}
+    )
+    password = fields.String(
+        required=True,
+        validate=[validate.Length(min=8, error="Kata sandi harus minimal 8 karakter.")],
+        error_messages={"required": "Kata sandi wajib diisi."}
+    )
+    password_confirmation = fields.String(
+        required=True,
+        error_messages={"required": "Konfirmasi kata sandi wajib diisi."}
+    )
+    role = fields.String(
+        required=True,
+        validate=validate.OneOf(['driver'], error="Role hanya boleh diisi dengan 'driver'."),
+        error_messages={"required": "Role wajib diisi."}
+    )
+    phone_number = fields.String(
+        required=True,
+        error_messages={"required": "Nomor telepon wajib diisi."}
+    )
+    institution_id = fields.Integer(
+        required=True,
+        error_messages={"required": "ID institusi wajib diisi."}
+    )
 
     def __init__(self, db_session: Session, *args, **kwargs):
         """Initialize schema with a database session."""
@@ -22,28 +55,28 @@ class CreateDriverSchema(Schema):
     @validates("email")
     def validate_email_unique(self, email):
         if self.db_session.query(User).filter(User.email == email).first():
-            raise ValidationError("Email is already taken.")
+            raise ValidationError("Email sudah terdaftar.")
 
     @validates("username")
     def validate_username_unique(self, username):
         if self.db_session.query(User).filter(User.username == username).first():
-            raise ValidationError("Username is already taken.")
+            raise ValidationError("Username sudah terdaftar.")
     
     @validates("phone_number")
-    def validate_nik_unique(self, phone_number):
+    def validate_phone_number_unique(self, phone_number):
         if self.db_session.query(Driver).filter_by(phone_number=phone_number).first():
-            raise ValidationError("Number Phone is already taken.")
+            raise ValidationError("Nomor telepon sudah terdaftar.")
         elif self.db_session.query(Resident).filter_by(phone_number=phone_number).first():
-            raise ValidationError("Number Phone is already taken.")
-    
+            raise ValidationError("Nomor telepon sudah terdaftar.")
+
     @validates('institution_id')
     def validate_institution_id(self, value):
         # Memastikan institution_id ada di database
         institution = Institution.query.get(value)
         if institution is None:
-            raise ValidationError("Institution with the given ID does not exist.")
+            raise ValidationError("Institusi dengan ID yang diberikan tidak ditemukan.")
 
     @validates_schema
     def validate_passwords_match(self, data, **kwargs):
         if data.get('password') != data.get('password_confirmation'):
-            raise ValidationError('Passwords do not match', 'password_confirmation')
+            raise ValidationError({'password_confirmation': 'Kata sandi dan konfirmasi kata sandi tidak cocok.'})
