@@ -191,36 +191,30 @@ def add_driver():
 @driver_route.route('/<int:driver_id>', methods=['PUT'])
 @auth.login_required
 def update_driver(driver_id):
-    # Get driver adn related user
-    driver = Driver.query.get(driver_id)
-    user = User.query.get(driver.user_id)
-
-    # Create and validate schema
-    schema = UpdateDriverSchema(db_session=db.session, driver_id=driver_id)
-    
-    # Validasi data request
     try:
+        # Get driver and related user
+        driver = Driver.query.get_or_404(driver_id)
+        user = User.query.get_or_404(driver.user_id)
+
+        # Create and validate schema
+        schema = UpdateDriverSchema(db_session=db.session, driver_id=driver_id)
         data = schema.load(request.json)
-    except ValidationError as err:
-        return jsonify({'success': False, 'errors': err.messages}), 400
 
-    try:
         # Begin transaction
         db.session.begin_nested()
 
         # Update user data
-        user.name = data.get('name', user.name)
-        user.email = data.get('email', user.email)
-        user.username = data.get('username', user.username)
-        user.address = data.get('address', user.address)
-       
+        user.name = data['name']
+        user.email = data['email']
+        user.username = data['username']
+        user.address = data['address']
+
         if data.get('password'):
             user.password = generate_password_hash(data['password'])
 
         # Update driver data
-        driver.address = data.get('address', driver.address)
-        driver.phone_number = data.get('phone_number', driver.phone_number)
-        driver.institution_id = data.get('institution_id', driver.institution_id)
+        driver.phone_number = data['phone_number']
+        driver.institution_id = data['institution_id']
 
         # Commit changes
         db.session.commit()

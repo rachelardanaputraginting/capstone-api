@@ -73,6 +73,9 @@ def get_vehicles():
 @vehicle_route.route('/', methods=['POST'])
 @auth.login_required
 def add_vehicles():
+    institution = request.json.get('institution_id')
+    driver = request.json.get('driver_id')
+    
     schema = CreateVehicleSchema(db_session=db.session)
 
     # Validasi data request
@@ -80,6 +83,14 @@ def add_vehicles():
         data = schema.load(request.json)
     except ValidationError as err:
         return jsonify({'success': False, 'errors': err.messages}), 400
+            
+    institution_obj = Institution.query.filter_by(id=institution).first()
+    if not institution_obj:
+        return jsonify({'success': False, 'message': 'Institution not found'}), 404
+    
+    driver_obj = Institution.query.filter_by(id=institution).first()
+    if not driver_obj:
+        return jsonify({'success': False, 'message': 'Driver not found'}), 404
 
     # Simpan data user ke database
     try:
@@ -115,18 +126,17 @@ def add_vehicles():
 @vehicle_route.route('/<int:vehicle_id>', methods=['PUT'])
 @auth.login_required
 def update_vehicle(vehicle_id):
-    # Get vehicle 
-    vehicle = Vehicle.query.get(vehicle_id)
+    try:
+        # Get vehicle 
+        vehicle = Vehicle.query.get_or_404(vehicle_id)
 
-    # Create schema with current vehicle data
-    schema = UpdateVehicleSchema(db_session=db.session, vehicle_id=vehicle_id)
-    
-    try:
+        # Prepare the request data
+        request_data = request.json or {}
+
+        # Create schema with current vehicle data
+        schema = UpdateVehicleSchema(db_session=db.session, vehicle_id=vehicle_id)
         data = schema.load(request.json)
-    except ValidationError as err:
-        return jsonify({'success': False, 'errors': err.messages}), 400
-        
-    try:
+
        # Update vehicle data with fallback to existing values
         vehicle.name = data.get('name', vehicle.name)
         vehicle.description = data.get('description', vehicle.description)
@@ -168,37 +178,3 @@ def update_vehicle(vehicle_id):
             'message': f'An error occurred: {str(e)}'
         }), 500
 # End Update 
-
-# Delete
-@vehicle_route.route('/<int:vehicle_id>', methods=['DELETE'])
-@auth.login_required
-def delete_driver(vehicle_id):
-    try:
-        vehicle_obj = Vehicle.query.filter_by(id=vehicle_id).first()
-        if not vehicle_obj:
-            return jsonify({'success': False, 'message': 'Vehicle not found'}), 404
-        
-        # Query driver berdasarkan ID
-        vehicle = Vehicle.query.get_or_404(vehicle_id)
-        
-        # Mulai transaksi
-        db.session.begin_nested()
-
-        # Hapus data Driver
-        db.session.delete(vehicle)
-
-        # Commit transaksi
-        db.session.commit()
-
-        return jsonify({
-            'success': True,
-            'message': 'Vehicle deleted successfully.'
-        }), 200
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            'success': False,
-            'message': f'An error occurred: {str(e)}'
-        }), 500
-# End Delete
