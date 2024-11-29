@@ -4,19 +4,20 @@ from sqlalchemy.orm import Session
 from app.models.models import User, Driver, Institution, Resident
 
 class CreateDriverSchema(Schema):
+    # Bidang pengguna dasar
     name = fields.String(
         required=True,
-        validate=[validate.Length(min=1, max=255, error="Nama harus antara 1 hingga 255 karakter.")],
+        validate=[validate.Length(min=1, max=50, error="Nama harus antara 1 hingga 50 karakter.")],
         error_messages={"required": "Nama wajib diisi."}
     )
     email = fields.Email(
         required=True,
-        validate=[validate.Length(max=255, error="Email tidak boleh lebih dari 255 karakter.")],
+        validate=[validate.Length(max=50, error="Email tidak boleh lebih dari 50 karakter.")],
         error_messages={"required": "Email wajib diisi.", "invalid": "Format email tidak valid."}
     )
     username = fields.String(
         required=True,
-        validate=[validate.Length(min=1, max=255, error="Username harus antara 1 hingga 255 karakter.")],
+        validate=[validate.Length(min=1, max=30, error="Username harus antara 1 hingga 30 karakter.")],
         error_messages={"required": "Username wajib diisi."}
     )
     address = fields.String(
@@ -33,13 +34,20 @@ class CreateDriverSchema(Schema):
         required=True,
         error_messages={"required": "Konfirmasi kata sandi wajib diisi."}
     )
+    
+    # Bidang khusus pengemudi
     role = fields.String(
         required=True,
         validate=validate.OneOf(['driver'], error="Role hanya boleh diisi dengan 'driver'."),
         error_messages={"required": "Role wajib diisi."}
     )
+    
     phone_number = fields.String(
         required=True,
+        validate=[
+            validate.Length(min=10, max=13, error="Nomor telepon harus antara 10 hingga 13 digit."),
+            validate.Regexp(r'^\d+$', error="Nomor telepon hanya boleh berisi angka.")
+        ],
         error_messages={"required": "Nomor telepon wajib diisi."}
     )
     institution_id = fields.Integer(

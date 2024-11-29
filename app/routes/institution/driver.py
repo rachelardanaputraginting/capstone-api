@@ -59,10 +59,10 @@ def get_all_drivers():
     # Return the response with the filtered driver data
     return jsonify(
         status=True,
-        message='Data loaded successfully.',
+        message='Data berhasil dimuat.',
         data=driver_data
     ), 200
-# End Get All 
+# Akhir Get All 
 
 # Get By ID
 @driver_route.route('/<int:driver_id>', methods=['GET'])
@@ -86,7 +86,7 @@ def get_driver_by_id(driver_id):
     if not driver:
         return jsonify(
             status=False,
-            message='Driver not found.',
+            message='Pengemudi tidak ditemukan.',
             data=None
         ), 404
 
@@ -107,37 +107,28 @@ def get_driver_by_id(driver_id):
     # Mengembalikan respons
     return jsonify(
         status=True,
-        message='Data loaded successfully.',
+        message='Data berhasil dimuat.',
         data=driver_data
     ), 200
-# End Get By ID
+# Akhir Get By ID
 
-# Create
+# Tambah Pengemudi
 @driver_route.route('/', methods=['POST'])
 @auth.login_required
 def add_driver():
-    role = "driver"
-    institution = request.json.get('institution_id')
-    
-    schema = CreateDriverSchema(db_session=db.session)
-
-    # Validasi data request
     try:
-        data = schema.load(request.json)
-    except ValidationError as err:
-        return jsonify({'success': False, 'errors': err.messages}), 400
+        # Validasi permintaan data
+        schema = CreateDriverSchema(db_session=db.session)
+        try:
+            data = schema.load(request.json)
+        except ValidationError as err:
+            return jsonify({'success': False, 'errors': err.messages}), 400
 
-    # Buat role user
-    role_obj = Role.query.filter_by(name=role).first()
-    if not role_obj:
-        return jsonify({'success': False, 'message': 'Role not found'}), 404\
-            
-    institution_obj = Institution.query.filter_by(id=institution).first()
-    if not institution_obj:
-        return jsonify({'success': False, 'message': 'Institution not found'}), 404
+        # Buat role user
+        role = "driver"
+        role_obj = Role.query.filter_by(name=role).first()
 
-    # Simpan data user ke database
-    try:
+        # Simpan data user ke database
         new_user = User(
             name=data['name'],
             email=data['email'],
@@ -165,14 +156,14 @@ def add_driver():
         # Simpan semua perubahan ke database
         db.session.commit()
 
-        # Generate token
+        # Hasilkan token
         access_token = create_access_token(identity=new_user.id)
         
         send_email_verify(new_user)
 
         return jsonify({
             'success': True,
-            'message': 'Driver created successfully.',
+            'message': 'Pengemudi berhasil dibuat.',
             'user': {
                 'id': new_user.id,
                 'name': new_user.name,
@@ -182,28 +173,44 @@ def add_driver():
             }
         }), 201
 
-    except IntegrityError:
+    except Exception as e:
+        # Rollback untuk semua jenis kesalahan
         db.session.rollback()
-        return jsonify({'success': False, 'message': 'Add Driver failed due to a database constraint'}), 500
-# End Create
+        
+        # Tangani ValidationError secara spesifik
+        if isinstance(e, ValidationError):
+            return jsonify({
+                'success': False,
+                'message': 'Kesalahan validasi',
+                'errors': e.messages
+            }), 400
+        
+        # Tangani kesalahan umum
+        return jsonify({
+            'success': False,
+            'message': f'Terjadi kesalahan: {str(e)}'
+        }), 500
+# Akhir Tambah Pengemudi
 
-# Update
+# Ubah Pengemudi
 @driver_route.route('/<int:driver_id>', methods=['PUT'])
 @auth.login_required
 def update_driver(driver_id):
     try:
-        # Get driver and related user
-        driver = Driver.query.get_or_404(driver_id)
-        user = User.query.get_or_404(driver.user_id)
-
-        # Create and validate schema
+        # Membuat dan memvalidasi skema
         schema = UpdateDriverSchema(db_session=db.session, driver_id=driver_id)
-        data = schema.load(request.json)
+        try:
+            data = schema.load(request.json)
+        except ValidationError as err:
+            return jsonify({'success': False, 'errors': err.messages}), 400
+        # Dapatkan pengemudi dan pengguna terkait
+        driver = Driver.query.get(driver_id)
+        user = User.query.get(driver.user_id)
 
         # Begin transaction
         db.session.begin_nested()
 
-        # Update user data
+        # Ubah user data
         user.name = data['name']
         user.email = data['email']
         user.username = data['username']
@@ -212,16 +219,16 @@ def update_driver(driver_id):
         if data.get('password'):
             user.password = generate_password_hash(data['password'])
 
-        # Update driver data
+        # Ubah driver data
         driver.phone_number = data['phone_number']
         driver.institution_id = data['institution_id']
 
-        # Commit changes
+        # Melakukan perubahan
         db.session.commit()
 
         return jsonify({
             'success': True,
-            'message': 'Driver updated successfully',
+            'message': 'Pengemudi berhasil diperbarui',
             'data': {
                 'user': user.as_dict(),
                 'driver': {
@@ -232,22 +239,25 @@ def update_driver(driver_id):
             }
         }), 200
 
-    except ValidationError as err:
-        db.session.rollback()
-        return jsonify({
-            'success': False,
-            'message': 'Validation error',
-            'errors': err.messages
-        }), 400
     except Exception as e:
+        # Rollback untuk semua jenis kesalahan
         db.session.rollback()
+        
+        # Tangani ValidationError secara spesifik
+        if isinstance(e, ValidationError):
+            return jsonify({
+                'success': False,
+                'message': 'Kesalahan validasi',
+                'errors': e.messages
+            }), 400
+            
         return jsonify({
             'success': False,
-            'message': f'An error occurred: {str(e)}'
+            'message': f'Terjadi kesalahan: {str(e)}'
         }), 500
-# End Update
+# Akhir Ubah
 
-# Delete
+# Hapus Pengemudi
 @driver_route.route('/<int:driver_id>', methods=['DELETE'])
 @auth.login_required
 def delete_driver(driver_id):
@@ -275,18 +285,18 @@ def delete_driver(driver_id):
 
         return jsonify({
             'success': True,
-            'message': 'Driver deleted successfully.'
+            'message': 'Pengemudi berhasil dihapus.'
         }), 200
 
     except Exception as e:
         db.session.rollback()
         return jsonify({
             'success': False,
-            'message': f'An error occurred: {str(e)}'
+            'message': f'Terjadi kesalahan: {str(e)}'
         }), 500
-# End Delete
+# Akhir Hapus Pengemudi
 
-# Send Email Verification
+# Kirim Email Verifikasi
 def send_email_verify(user) :
     token = generate_verify_token(user.email)
     msg = Message(
@@ -296,11 +306,11 @@ def send_email_verify(user) :
         html=render_template('institution/verify_email.html', token=token, name=user.name)
     )
     mail.send(msg)
-# End Send Email Verification
+# Akhir Kirim Email Verifikasi
 
-# Generate Verify Token
+# Hasilkan Verifikasi Token
 def generate_verify_token(email) :
     secret_key = os.getenv('SECRET_KEY') 
     serializer = URLSafeTimedSerializer(secret_key)
     return serializer.dumps(email, salt='salt_key')
-# End Generate Verify Token
+# Akhir Hasilkan Verifikasi Token
