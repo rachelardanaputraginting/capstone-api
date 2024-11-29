@@ -73,7 +73,7 @@ class ResidentRegistrationSchema(Schema):
         required=True,
         validate=validate.OneOf(
             ['MAN', 'WOMEN'], 
-            error="Jenis kelamin hanya boleh 'MAN' atau 'WOMEN'."),
+            error="Jenis kelamin hanya boleh 'Pria' atau 'Wanita'."),
         error_messages={"required": "Jenis kelamin wajib diisi."}
     )
     phone_number = fields.String(
