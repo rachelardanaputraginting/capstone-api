@@ -16,7 +16,7 @@ from app.schemas.driver.update_schema import UpdateDriverSchema
 
 driver_route = Blueprint('institutions/drivers', __name__)
 
-# Get All
+# Ambil Data
 @driver_route.route('/', methods=['GET'])
 @auth.login_required
 def get_all_drivers():
@@ -61,9 +61,9 @@ def get_all_drivers():
         message='Data berhasil dimuat.',
         data=driver_data
     ), 200
-# Akhir Get All 
+# Akhir Ambil Data 
 
-# Get By ID
+# Ambil Data berdasarkan ID
 @driver_route.route('/<int:driver_id>', methods=['GET'])
 @auth.login_required
 def get_driver_by_id(driver_id):
@@ -109,7 +109,7 @@ def get_driver_by_id(driver_id):
         message='Data berhasil dimuat.',
         data=driver_data
     ), 200
-# Akhir Get By ID
+# Akhir Ambil Data berdasarkan ID
 
 # Tambah Pengemudi
 @driver_route.route('/', methods=['POST'])
