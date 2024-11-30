@@ -12,7 +12,7 @@ from app.models.models import User, Role, UserRole, Administration
 
 # schemas
 from app.schemas.administration.create_schema import CreateAdministrationSchema
-# from app.schemas.administration.update_schema import UpdateDriverSchema
+from app.schemas.administration.update_schema import UpdateAdministrationSchema
 
 admin_route = Blueprint('administrations', __name__)
 
@@ -139,6 +139,64 @@ def add_driver():
             message= f'Terjadi kesalahan: {str(e)}'
         ), 500
 # Akhir Tambah Admin
+
+# Ubah Admin
+@admin_route.route('/<int:administration_id>', methods=['PUT'])
+@auth.login_required
+def update_driver(administration_id):
+    try:
+        # Membuat dan memvalidasi skema
+        schema = UpdateAdministrationSchema(db_session=db.session, administration_id=administration_id)
+        try:
+            data = schema.load(request.json)
+        except ValidationError as err:
+            return jsonify({
+                'status': False,
+                'message': 'Validasi data gagal',
+                'errors': err.messages
+            }), 400
+            
+        # Dapatkan admin dan pengguna terkait
+        admin = Administration.query.get(administration_id)
+        user = User.query.get(admin.user_id)
+
+        # Begin transaction
+        db.session.begin_nested()
+
+        # Ubah user data
+        user.name = data.get('name', user.name)
+        user.username = data.get('username', user.username)
+        user.email = data.get('email', user.email)
+        user.address = data.get('address', user.address)
+
+        # Melakukan perubahan
+        db.session.commit()
+
+        return jsonify({
+            'status': True,
+            'message': 'Admin berhasil diperbarui',
+            'data': {
+                'user': user.as_dict()
+            }
+        }), 200
+
+    except Exception as e:
+        # Rollback untuk semua jenis kesalahan
+        db.session.rollback()
+        
+        # Tangani ValidationError secara spesifik
+        if isinstance(e, ValidationError):
+            return jsonify({
+                'status': False,
+                'message': 'Kesalahan validasi',
+                'errors': e.messages
+            }), 400
+            
+        return jsonify(
+            status=False,
+            message= f'Terjadi kesalahan: {str(e)}'
+        ), 500
+# Akhir Ubah Admin
 
 # Kirim Email Verifikasi
 def send_email_verify(user) :
