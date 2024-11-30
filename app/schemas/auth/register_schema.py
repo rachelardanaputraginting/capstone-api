@@ -157,7 +157,7 @@ class InstitutionRegistrationSchema(Schema):
     role = fields.String(
         required=True,
         validate=validate.OneOf(
-            ['resident'], 
+            ['institution'], 
             error="Role harus 'institution'."
         ),
         error_messages={
