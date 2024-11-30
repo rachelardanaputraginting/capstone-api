@@ -1,12 +1,10 @@
 import os
-from app.extensions import db, mail
+from app.extensions import db
 from marshmallow import ValidationError
-from flask import Blueprint, request, jsonify, render_template
-from werkzeug.security import generate_password_hash
-from sqlalchemy.exc import IntegrityError
+from flask import Blueprint, request, jsonify
 
 from utils import auth
-from app.models.models import Vehicle, User, Vehicle, Institution, Driver
+from app.models.models import Vehicle, User, Vehicle, Driver
 
 # schemas
 from app.schemas.vehicle.create_schema import CreateVehicleSchema
@@ -16,7 +14,7 @@ vehicle_route = Blueprint('institutions/vehicles', __name__)
 
 from sqlalchemy.orm import aliased
 
-# Get All
+# Ambil Data
 @vehicle_route.route('/', methods=['GET'])
 @auth.login_required
 def get_vehicles():
@@ -67,37 +65,27 @@ def get_vehicles():
         message='Vehicles loaded successfully.',
         data=vehicle_data
     ), 200
-# End Get All
+# Akhir Ambil Data
 
-# Create
+# Tambah Kendaraan
 @vehicle_route.route('/', methods=['POST'])
 @auth.login_required
 def add_vehicles():
-    institution = request.json.get('institution_id')
-    driver = request.json.get('driver_id')
-    
-    schema = CreateVehicleSchema(db_session=db.session)
-
-    # Validasi data request
+     # Simpan data user ke database
     try:
-        data = schema.load(request.json)
-    except ValidationError as err:
-        return jsonify({'success': False, 'errors': err.messages}), 400
-            
-    institution_obj = Institution.query.filter_by(id=institution).first()
-    if not institution_obj:
-        return jsonify({'success': False, 'message': 'Institution not found'}), 404
-    
-    driver_obj = Institution.query.filter_by(id=institution).first()
-    if not driver_obj:
-        return jsonify({'success': False, 'message': 'Driver not found'}), 404
+        schema = CreateVehicleSchema(db_session=db.session)
 
-    # Simpan data user ke database
-    try:
+        # Validasi permintaan data
+        try:
+            data = schema.load(request.json)
+        except ValidationError as err:
+            return jsonify({'success': False, 'errors': err.messages}), 400
+        
         new_vehicles = Vehicle(
             institution_id=data['institution_id'],
             driver_id=data['driver_id'],
             name=data['name'],
+            picture=data['picture'],
             description=data['description'],
             is_ready=data['is_ready']
         )
@@ -108,36 +96,53 @@ def add_vehicles():
 
         return jsonify({
             'success': True,
-            'message': 'Vehicle created successfully.',
-            'user': {
+            'message': 'Kendaraan berhasil dibuat',
+            'data': {
                 'id': new_vehicles.id,
                 'institution_id': new_vehicles.institution_id,
                 'driver_id': new_vehicles.driver_id,
                 'is_ready': new_vehicles.is_ready,
+                'picture': new_vehicles.picture,
             }
         }), 201
 
-    except IntegrityError:
+    except Exception as e:
+        # Rollback untuk semua jenis kesalahan
         db.session.rollback()
-        return jsonify({'success': False, 'message': 'Add Vehicle failed due to a database constraint'}), 500
-# End Create
+        
+        # Tangani ValidationError secara spesifik
+        if isinstance(e, ValidationError):
+            return jsonify({
+                'success': False,
+                'message': 'Kesalahan validasi',
+                'errors': e.messages
+            }), 400
+        
+        # Tangani kesalahan umum
+        return jsonify({
+            'success': False,
+            'message': f'Terjadi kesalahan: {str(e)}'
+        }), 500
+# Akhir Tambah Kendaraan
 
-# Update 
+# Ubah Kendaraan 
 @vehicle_route.route('/<int:vehicle_id>', methods=['PUT'])
 @auth.login_required
 def update_vehicle(vehicle_id):
     try:
-        # Get vehicle 
-        vehicle = Vehicle.query.get_or_404(vehicle_id)
-
-        # Prepare the request data
-        request_data = request.json or {}
-
-        # Create schema with current vehicle data
+        # Buat skema dengan data kendaraan saat ini
         schema = UpdateVehicleSchema(db_session=db.session, vehicle_id=vehicle_id)
-        data = schema.load(request.json)
 
-       # Update vehicle data with fallback to existing values
+        # Validasi permintaan data
+        try:
+            data = schema.load(request.json)
+        except ValidationError as err:
+            return jsonify({'success': False, 'errors': err.messages}), 400
+
+         # Get vehicle 
+        vehicle = Vehicle.query.filter(vehicle_id).first()
+
+        # Perbarui data kendaraan dengan fallback ke nilai yang ada
         vehicle.name = data.get('name', vehicle.name)
         vehicle.description = data.get('description', vehicle.description)
         vehicle.institution_id = data.get('institution_id', vehicle.institution_id)
@@ -145,12 +150,12 @@ def update_vehicle(vehicle_id):
         vehicle.is_ready = data.get('is_ready', vehicle.is_ready)
         vehicle.picture = data.get('picture', vehicle.picture)
 
-        # Commit changes
+        # Lakukan perubahan
         db.session.commit()
 
         return jsonify({
             'success': True,
-            'message': 'Vehicle updated successfully',
+            'message': 'Kendaraan berhasil diperbarui',
             'data': {
                 'vehicle': {
                     'id': vehicle.id,
@@ -164,17 +169,21 @@ def update_vehicle(vehicle_id):
             }
         }), 200
 
-    except ValidationError as err:
-        db.session.rollback()
-        return jsonify({
-            'success': False,
-            'message': 'Validation error',
-            'errors': err.messages
-        }), 400
     except Exception as e:
+        # Rollback untuk semua jenis kesalahan
         db.session.rollback()
+        
+        # Tangani ValidationError secara spesifik
+        if isinstance(e, ValidationError):
+            return jsonify({
+                'success': False,
+                'message': 'Kesalahan validasi',
+                'errors': e.messages
+            }), 400
+        
+        # Tangani kesalahan umum
         return jsonify({
             'success': False,
-            'message': f'An error occurred: {str(e)}'
+            'message': f'Terjadi kesalahan: {str(e)}'
         }), 500
-# End Update 
+# Akhir Ubah Kendaraan 

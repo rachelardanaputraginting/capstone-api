@@ -55,12 +55,15 @@ class UpdateVehicleSchema(Schema):
     )
 
     def __init__(self, db_session: Session, vehicle_id: int, *args, **kwargs):
-        """Inisialisasi skema dengan sesi database dan ID kendaraan."""
+        # Inisialisasi skema dengan sesi database dan ID kendaraan.
         super().__init__(*args, **kwargs)
         self.db_session = db_session
         self.vehicle_id = vehicle_id
         # Ambil kendaraan saat ini untuk referensi
+        # Pindahkan pengecekan ke __init__
         self.current_vehicle = self.db_session.query(Vehicle).get(vehicle_id)
+        if not self.current_vehicle:
+            raise ValidationError({'vehicle_id': 'Kendaraan tidak ditemukan'})
 
     @validates('institution_id')
     def validate_institution_id(self, value):
@@ -72,7 +75,7 @@ class UpdateVehicleSchema(Schema):
 
     @validates('driver_id')
     def validate_driver_id(self, value):
-        """Validasi ID pengemudi jika diberikan."""
+        # Validasi ID pengemudi jika diberikan.
         if value is not None:  # Hanya validasi jika nilai diberikan
             existing_driver = self.db_session.query(Vehicle).get(value)
             if not existing_driver:
