@@ -103,3 +103,35 @@ def add_roles():
             message= f'Terjadi kesalahan: {str(e)}'
         ), 500
 # Akhir Tambah Role
+
+@role_route.route('/<int:role_id>', methods=['DELETE'])
+@auth.login_required
+def delete_driver(role_id):
+    try:
+        # Kueri role berdasarkan ID
+        role = Role.query.filter_by(id=role_id).first()
+        
+        if not role:
+            return jsonify({
+                'status': False,
+                'message': 'Role tidak ditemukan.'
+            }), 404
+
+        # Hapus data Role
+        db.session.delete(role)
+
+        # Commit transaksi
+        db.session.commit()
+
+        return jsonify(
+            status= True,
+            message='Role berhasil dihapus.'
+        ), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(
+            status=False,
+            message= f'Terjadi kesalahan: {str(e)}'
+        ), 500
+# Akhir Hapus Role
