@@ -262,9 +262,12 @@ def update_driver(driver_id):
 def delete_driver(driver_id):
     try:
         # Query driver berdasarkan ID
-        driver = Driver.query.get(driver_id)
+        driver = Driver.query.filter_by(id=driver_id).first()
         if not driver:
-            return jsonify({"error": "Pengemudi tidak ditemukan"}), 404
+            return jsonify({
+                'success': False,
+                'message': 'Pengemudi tidak ditemukan.'
+            }), 404
         
         user_id = driver.user_id  # Simpan user_id untuk menghapus data user
         
