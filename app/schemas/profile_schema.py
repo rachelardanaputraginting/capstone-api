@@ -44,11 +44,17 @@ class BaseProfileSchema(Schema):
         super().__init__(*args, **kwargs)
         self.db_session = db_session
         self.user_id = user_id
-        
-        # Cek dan set current_user
+
+        # Cek dan set current_user terlebih dahulu
         self.current_user = self.db_session.query(User).get(user_id)
         if not self.current_user:
             raise ValidationError({'user_id': 'Pengguna tidak ditemukan'})
+        
+        # Cari resident optional
+        self.current_resident = self.db_session.query(Resident).filter(Resident.user_id == user_id).first()
+        
+        # Cari driver optional
+        self.current_driver = self.db_session.query(Driver).filter(Driver.user_id == user_id).first()
 
     @validates("email")
     def validate_email_unique(self, email):
@@ -108,7 +114,7 @@ class ResidentProfileSchema(BaseProfileSchema):
     )
     gender = fields.String(
         required=False, 
-        validate=validate.OneOf(['MAN', 'WOMEN'], error="Jenis kelamin hanya boleh 'MAN' atau 'WOMEN'."),
+        validate=validate.OneOf(['MAN', 'WOMEN'], error="Jenis kelamin hanya boleh 'Pria' atau 'Wanita'."),
         error_messages={
             "null": "Jenis kelamin tidak boleh kosong.",
             "invalid": "Pilihan jenis kelamin tidak valid."
@@ -129,22 +135,22 @@ class ResidentProfileSchema(BaseProfileSchema):
             return
             
         # Periksa apakah phone_number ada dalam tabel driver (tidak termasuk driver saat ini)
-        existing_driver = self.db_session.query(Driver).filter(
+        existing_resident = self.db_session.query(Resident).filter(
             and_(
-                Driver.phone_number == phone_number,
-                Driver.id != self.current_driver.id
+                Resident.phone_number == phone_number,
+                Resident.id != self.current_resident.id
             )
         ).first()
         
-        if existing_driver:
+        if existing_resident:
             raise ValidationError("Nomor telepon sudah digunakan")
 
         # Periksa apakah phone_number ada di tabel penduduk
-        existing_resident = self.db_session.query(Resident).filter(
-            Resident.phone_number == phone_number
+        existing_driver = self.db_session.query(Driver).filter(
+            Driver.phone_number == phone_number
         ).first()
         
-        if existing_resident:
+        if existing_driver:
             raise ValidationError("Nomor telepon sudah digunakan")
 
     @validates("nik")
@@ -191,6 +197,14 @@ class DriverProfileSchema(BaseProfileSchema):
         ).first()
         
         if existing_driver:
+            raise ValidationError("Nomor telepon sudah digunakan")
+
+        # Periksa apakah phone_number ada di tabel penduduk
+        existing_resident = self.db_session.query(Resident).filter(
+            Resident.phone_number == phone_number
+        ).first()
+        
+        if existing_resident:
             raise ValidationError("Nomor telepon sudah digunakan")
 
     @validates("institution_id")

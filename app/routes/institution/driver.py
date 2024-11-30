@@ -3,13 +3,12 @@ from app.extensions import db, mail
 from marshmallow import ValidationError
 from flask import Blueprint, request, jsonify, render_template
 from werkzeug.security import generate_password_hash
-from sqlalchemy.exc import IntegrityError
 from flask_jwt_extended import create_access_token
 from itsdangerous import URLSafeTimedSerializer
 from flask_mail import Message
 
 from utils import auth
-from app.models.models import Driver, User, Role, UserRole, Institution
+from app.models.models import Driver, User, Role, UserRole
 
 # schemas
 from app.schemas.driver.create_schema import CreateDriverSchema
@@ -17,7 +16,7 @@ from app.schemas.driver.update_schema import UpdateDriverSchema
 
 driver_route = Blueprint('institutions/drivers', __name__)
 
-# Get All
+# Ambil Data
 @driver_route.route('/', methods=['GET'])
 @auth.login_required
 def get_all_drivers():
@@ -62,9 +61,9 @@ def get_all_drivers():
         message='Data berhasil dimuat.',
         data=driver_data
     ), 200
-# Akhir Get All 
+# Akhir Ambil Data 
 
-# Get By ID
+# Ambil Data berdasarkan ID
 @driver_route.route('/<int:driver_id>', methods=['GET'])
 @auth.login_required
 def get_driver_by_id(driver_id):
@@ -110,7 +109,7 @@ def get_driver_by_id(driver_id):
         message='Data berhasil dimuat.',
         data=driver_data
     ), 200
-# Akhir Get By ID
+# Akhir Ambil Data berdasarkan ID
 
 # Tambah Pengemudi
 @driver_route.route('/', methods=['POST'])
@@ -263,7 +262,10 @@ def update_driver(driver_id):
 def delete_driver(driver_id):
     try:
         # Query driver berdasarkan ID
-        driver = Driver.query.get_or_404(driver_id)
+        driver = Driver.query.get(driver_id)
+        if not driver:
+            return jsonify({"error": "Pengemudi tidak ditemukan"}), 404
+        
         user_id = driver.user_id  # Simpan user_id untuk menghapus data user
         
         # Mulai transaksi

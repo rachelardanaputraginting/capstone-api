@@ -83,7 +83,7 @@ def profile_me():
         }
 
     else:
-       return jsonify({"error": "User tidak ditemukan"}), 404
+       return jsonify({"error": "Pengguna tidak ditemukan"}), 404
 
     return jsonify(response)
 
@@ -99,27 +99,36 @@ def update_profile():
     user_role = user.roles[0].name if user.roles else None
     
     try:
-        # Select appropriate schema based on user role
+        # Pilih skema yang sesuai berdasarkan peran pengguna
         if user_role == 'resident':
             # Validasi permintaan data
             schema = ResidentProfileSchema(db_session=db.session, user_id=user_id)
+
             try:
                 data = schema.load(request.json)
             except ValidationError as err:
                 return jsonify({'success': False, 'errors': err.messages}), 400
             
-            # Update resident-specific data only if provided
+            # Perbarui data spesifik penduduk hanya jika tersedia
             resident = user.resident
             if not resident:
-                return jsonify({"error": "Resident data tidak ditemukan"}), 404
+                return jsonify({"error": "Masyarakat data tidak ditemukan"}), 404
             
-            # Begin transaction
+            # Mulailah transaksi
             db.session.begin_nested()
-            resident.nik = data['nik']
-            resident.phone_number = data['phone_number']
-            resident.date_of_birth = data['date_of_birth']
-            resident.place_of_birth = data['place_of_birth']
-            resident.gender = data['gender']
+
+            # Ubah user data
+            user.name = data.get('name', user.name)
+            user.username = data.get('username', user.username)
+            user.email = data.get('email', user.email)
+            user.address = data.get('address', user.address)
+
+            # Ubah data Masyarakat
+            resident.nik = data.get('nik', resident.nik)
+            resident.phone_number = data.get('phone_number', resident.phone_number)
+            resident.date_of_birth = data.get('date_of_birth', resident.date_of_birth)
+            resident.place_of_birth = data.get('place_of_birth', resident.place_of_birth)
+            resident.gender = data.get('gender', resident.gender)
             
             db.session.commit()
 
@@ -149,10 +158,19 @@ def update_profile():
             driver = user.driver
             if not driver:
                 return jsonify({"error": "Driver data tidak ditemukan"}), 404
-                
-            for field in ['phone_number', 'institution_id']:
-                if field in data:
-                    setattr(driver, field, data[field])
+            
+            # Mulailah transaksi
+            db.session.begin_nested()
+            
+            # Ubah user data
+            user.name = data.get('name', user.name)
+            user.username = data.get('username', user.username)
+            user.email = data.get('email', user.email)
+            user.address = data.get('address', user.address)
+
+            # Ubah data Pengemudi
+            driver.phone_number = data.get('phone_number', driver.phone_number)
+            driver.institution_id = data.get('institution_id', driver.institution_id)
             
             db.session.commit()
 
@@ -214,8 +232,14 @@ def update_profile():
         elif user_role == 'administration':
             schema = AdministrationProfileSchema(db_session=db.session, user_id=user_id)
             data = schema.load(request.json)
-            # Handle updates to administration profile if needed
+
             db.session.commit()
+
+            # Ubah user data
+            user.name = data.get('name', user.name)
+            user.username = data.get('username', user.username)
+            user.email = data.get('email', user.email)
+            user.address = data.get('address', user.address)
 
             return jsonify({
                 'success': True,
@@ -240,5 +264,5 @@ def update_profile():
             }), 400
         return jsonify({
             'success': False,
-            'message': f'An error occurred: {str(e)}'
+            'message': f'Terjadi kesalahan: {str(e)}'
         }), 500
