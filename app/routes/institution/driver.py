@@ -219,17 +219,14 @@ def update_driver(driver_id):
         db.session.begin_nested()
 
         # Ubah user data
-        user.name = data['name']
-        user.email = data['email']
-        user.username = data['username']
-        user.address = data['address']
-
-        if data.get('password'):
-            user.password = generate_password_hash(data['password'])
-
-        # Ubah driver data
-        driver.phone_number = data['phone_number']
-        driver.institution_id = data['institution_id']
+        user.name = data.get('name', user.name)
+        user.username = data.get('username', user.username)
+        user.email = data.get('email', user.email)
+        user.address = data.get('address', user.address)
+        
+        # Ubah data Pengemudi
+        driver.phone_number = data.get('phone_number', driver.phone_number)
+        driver.institution_id = data.get('institution_id', driver.institution_id)
 
         # Melakukan perubahan
         db.session.commit()
