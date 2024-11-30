@@ -107,7 +107,11 @@ def update_profile():
             try:
                 data = schema.load(request.json)
             except ValidationError as err:
-                return jsonify({'success': False, 'errors': err.messages}), 400
+                return jsonify({
+                    'status': False,
+                    'message': 'Validasi data gagal',
+                    'errors': err.messages
+                }), 400
             
             # Perbarui data spesifik penduduk hanya jika tersedia
             resident = user.resident
@@ -133,7 +137,7 @@ def update_profile():
             db.session.commit()
 
             return jsonify({
-                'success': True,
+                'status': True,
                 'message': 'Profil berhasil diperbarui',
                 "data" : {
                     'user': user.as_dict(),
@@ -153,7 +157,11 @@ def update_profile():
             try:
                 data = schema.load(request.json)
             except ValidationError as err:
-                return jsonify({'success': False, 'errors': err.messages}), 400
+                return jsonify({
+                    'status': False,
+                    'message': 'Validasi data gagal',
+                    'errors': err.messages
+                }), 400
             
             driver = user.driver
             if not driver:
@@ -175,7 +183,7 @@ def update_profile():
             db.session.commit()
 
             return jsonify({
-                'success': True,
+                'status': True,
                 'message': 'Profil berhasil diperbarui',
                 "data" : {
                     'user': user.as_dict(),
@@ -193,7 +201,11 @@ def update_profile():
             try:
                 data = schema.load(request.json)
             except ValidationError as err:
-                return jsonify({'success': False, 'errors': err.messages}), 400
+                return jsonify({
+                    'status': False,
+                    'message': 'Validasi data gagal',
+                    'errors': err.messages
+                }), 400
             
             institution = user.institution
             if not institution:
@@ -215,7 +227,7 @@ def update_profile():
             
             db.session.commit()
             return jsonify({
-                'success': True,
+                'status': True,
                 'message': 'Profil berhasil diperbarui',
                 "data" : {
                     'user': user.as_dict(),
@@ -231,7 +243,14 @@ def update_profile():
 
         elif user_role == 'administration':
             schema = AdministrationProfileSchema(db_session=db.session, user_id=user_id)
-            data = schema.load(request.json)
+            try:
+                data = schema.load(request.json)
+            except ValidationError as err:
+                return jsonify({
+                    'status': False,
+                    'message': 'Validasi data gagal',
+                    'errors': err.messages
+                }), 400
 
             db.session.commit()
 
@@ -242,14 +261,14 @@ def update_profile():
             user.address = data.get('address', user.address)
 
             return jsonify({
-                'success': True,
+                'status': True,
                 'message': 'Profil berhasil diperbarui',
                 "data" : {
                     'user': user.as_dict()
                 }
             }), 200
         else:
-            return jsonify({'success': False, 'message': 'Role pengguna tidak valid'}), 400
+            return jsonify({'status': False, 'message': 'Role pengguna tidak valid'}), 400
 
     except Exception as e:
         # Rollback untuk semua jenis kesalahan
@@ -258,11 +277,12 @@ def update_profile():
         # Tangani ValidationError secara spesifik
         if isinstance(e, ValidationError):
             return jsonify({
-                'success': False,
+                'status': False,
                 'message': 'Kesalahan validasi',
                 'errors': e.messages
             }), 400
-        return jsonify({
-            'success': False,
-            'message': f'Terjadi kesalahan: {str(e)}'
-        }), 500
+            
+        return jsonify(
+            status=False,
+            message= f'Terjadi kesalahan: {str(e)}'
+        ), 500

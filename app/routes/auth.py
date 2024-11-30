@@ -35,18 +35,22 @@ def register():
     elif role == 'institution':
         schema = InstitutionRegistrationSchema(db_session=db.session)
     else:
-        return jsonify({'success': False, 'message': 'Role yang dimasukkan tidak valid'}), 400
+        return jsonify({'status': False, 'message': 'Role yang dimasukkan tidak valid'}), 400
 
     # Validasi permintaan data
     try:
         data = schema.load(request.json)
     except ValidationError as err:
-        return jsonify({'success': False, 'errors': err.messages}), 400
+        return jsonify({
+            'status': False,
+            'message': 'Validasi data gagal',
+            'errors': err.messages
+        }), 400
 
     # Buat role user
     role_obj = Role.query.filter_by(name=role).first()
     if not role_obj:
-        return jsonify({'success': False, 'message': 'Role tidak ditemukan'}), 404
+        return jsonify({'status': False, 'message': 'Role tidak ditemukan'}), 404
 
     # Simpan data user ke database
     try:
@@ -96,7 +100,7 @@ def register():
         send_email_verify(new_user)
 
         return jsonify({
-            'success': True,
+            'status': True,
             'message': 'Pengguna berhasil terdaftar.',
             'user': {
                 'id': new_user.id,
@@ -109,7 +113,7 @@ def register():
 
     except IntegrityError:
         db.session.rollback()
-        return jsonify({'success': False, 'message': 'Pendaftaran gagal karena kendala basis data'}), 500
+        return jsonify({'status': False, 'message': 'Pendaftaran gagal karena kendala basis data'}), 500
 # Akhir Daftar Pengguna
 
 # Kirim Email Verifikasi
@@ -182,7 +186,11 @@ def login():
     try:
         data = schema.load(request.json)
     except ValidationError as err:
-        return jsonify({'success': False, 'errors': err.messages}), 400
+        return jsonify({
+            'status': False,
+            'message': 'Validasi data gagal',
+            'errors': err.messages
+        }), 400
         
     email = data['email']
     password = data['password']
@@ -205,12 +213,12 @@ def login():
             login_log = LoginLog(jti)
         except Exception as e:
             return jsonify(
-                success=False,
+                status=False,
                 message="Berhasil masuk tetapi gagal membuat log. Silakan coba lagi."
             ), 500
         
         response = jsonify(
-            success=True,
+            status=True,
             message="Anda telah berhasil masuk.",
             data={
                 "access_token": access_token
@@ -219,7 +227,7 @@ def login():
         return response, 200
     else:
         return jsonify(
-            success=False,
+            status=False,
             message="Gagal masuk. Silakan periksa kredensial Anda dan coba lagi."
         ), 401
 # Akhir Masuk
@@ -305,7 +313,11 @@ def forgotPassword():
     try:
         data = schema.load(request.json)
     except ValidationError as err:
-        return jsonify({'success': False, 'errors': err.messages}), 400
+        return jsonify({
+            'status': False,
+            'message': 'Validasi data gagal',
+            'errors': err.messages
+        }), 400
 
     email = data['email']
     user = User.query.filter_by(email=email).first()
@@ -339,7 +351,11 @@ def resetPassword(token):
     try:
         data = schema.load(request.json)
     except ValidationError as err:
-        return jsonify({'success': False, 'errors': err.messages}), 400
+        return jsonify({
+            'status': False,
+            'message': 'Validasi data gagal',
+            'errors': err.messages
+        }), 400
 
     rp = ResetPassword.query.filter_by(reset_token=token).first()
 
