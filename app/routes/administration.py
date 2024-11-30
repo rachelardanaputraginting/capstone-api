@@ -8,116 +8,63 @@ from itsdangerous import URLSafeTimedSerializer
 from flask_mail import Message
 
 from utils import auth
-from app.models.models import Driver, User, Role, UserRole
+from app.models.models import User, Role, UserRole, Administration
 
 # schemas
-from app.schemas.driver.create_schema import CreateDriverSchema
-from app.schemas.driver.update_schema import UpdateDriverSchema
+from app.schemas.administration.create_schema import CreateAdministrationSchema
+from app.schemas.administration.update_schema import UpdateAdministrationSchema
 
-driver_route = Blueprint('institutions/drivers', __name__)
+admin_route = Blueprint('administrations', __name__)
 
 # Ambil Data
-@driver_route.route('/', methods=['GET'])
+@admin_route.route('/', methods=['GET'])
 @auth.login_required
 def get_all_drivers():
-    # Get the search query parameter, if any
+    # Dapatkan parameter kueri penelusuran, jika ada
     search_name = request.args.get('name', None)
 
-    # Build the query
+    # Bangun kueri
     query = db.session.query(
-        Driver.id,
         User.id.label('user_id'),
         User.username,
         User.email,
         User.avatar,
         User.name
-    ).join(User, Driver.user_id == User.id)
+     ).join(UserRole).join(Role).filter(Role.name == 'administration')
 
-    # If a search name is provided, filter by the user's name
+     # Terapkan filter
     if search_name:
-        query = query.filter(User.name.ilike(f'%{search_name}%'))  # Use ilike for case-insensitive matching
+        query = query.filter(User.name.ilike(f'%{search_name}%'))  # Filter berdasarkan nama administration
 
-    # Execute the query
-    drivers = query.all()
+    # Jalankan kueri
+    administrations = query.all()
 
-    # Prepare the response
-    driver_data = [
+    # Siapkan data
+    admin_data = [
         {
-            "id": driver.id,
-            "user": {
-                "id": driver.user_id,
-                "username": driver.username,
-                "email": driver.email,
-                "avatar": driver.avatar,
-                "name": driver.name,
-            }
+            "id": administration.user_id,
+            "username": administration.username,
+            "email": administration.email,
+            "avatar": administration.avatar,
+            "name": administration.name
         }
-        for driver in drivers
+        for administration in administrations
     ]
 
-    # Return the response with the filtered driver data
     return jsonify(
         status=True,
         message='Data berhasil dimuat.',
-        data=driver_data
+        data=admin_data
     ), 200
 # Akhir Ambil Data 
 
-# Ambil Data berdasarkan ID
-@driver_route.route('/<int:driver_id>', methods=['GET'])
+# Tambah Admin
+@admin_route.route('/', methods=['POST'])
 @auth.login_required
-def get_driver_by_id(driver_id):
-    # Query untuk mendapatkan data driver berdasarkan ID
-    driver = db.session.query(
-        Driver.id,
-        User.id.label('user_id'),
-        User.username,
-        User.email,
-        User.avatar,
-        User.address,
-        User.name,
-        Driver.phone_number
-    ).join(User, Driver.user_id == User.id) \
-     .filter(Driver.id == driver_id) \
-     .first()
-
-    # Jika data tidak ditemukan
-    if not driver:
-        return jsonify(
-            status=False,
-            message='Pengemudi tidak ditemukan.',
-            data=None
-        ), 404
-
-    # Menyiapkan data untuk respons
-    driver_data = {
-        "id": driver.id,
-        "user": {
-            "id": driver.user_id,
-            "username": driver.username,
-            "email": driver.email,
-            "address": driver.address,
-            "avatar": driver.avatar,
-            "name": driver.name,
-        },
-        "phone_number": driver.phone_number,
-    }
-
-    # Mengembalikan respons
-    return jsonify(
-        status=True,
-        message='Data berhasil dimuat.',
-        data=driver_data
-    ), 200
-# Akhir Ambil Data berdasarkan ID
-
-# Tambah Pengemudi
-@driver_route.route('/', methods=['POST'])
-@auth.login_required
-def add_driver():
+def add_administration():
     try:
         # Validasi permintaan data
-        schema = CreateDriverSchema(db_session=db.session)
+        schema = CreateAdministrationSchema(db_session=db.session)
         try:
             data = schema.load(request.json)
         except ValidationError as err:
@@ -128,7 +75,7 @@ def add_driver():
             }), 400
 
         # Buat role user
-        role = "driver"
+        role = "administration"
         role_obj = Role.query.filter_by(name=role).first()
 
         # Simpan data user ke database
@@ -142,12 +89,10 @@ def add_driver():
         db.session.add(new_user)
         db.session.flush()
 
-        new_driver = Driver(
-            institution_id=data['institution_id'],
-            user_id=new_user.id,
-            phone_number=data['phone_number']
+        new_admin = Administration(
+            user_id=new_user.id
         )
-        db.session.add(new_driver)
+        db.session.add(new_admin)
         
         # Tambahkan role ke tabel pivot `user_roles`
         user_role = UserRole(
@@ -166,7 +111,7 @@ def add_driver():
 
         return jsonify({
             'status': True,
-            'message': 'Pengemudi berhasil dibuat.',
+            'message': 'Admin berhasil dibuat.',
             'user': {
                 'id': new_user.id,
                 'name': new_user.name,
@@ -193,15 +138,15 @@ def add_driver():
             status=False,
             message= f'Terjadi kesalahan: {str(e)}'
         ), 500
-# Akhir Tambah Pengemudi
+# Akhir Tambah Admin
 
-# Ubah Pengemudi
-@driver_route.route('/<int:driver_id>', methods=['PUT'])
+# Ubah Admin
+@admin_route.route('/<int:administration_id>', methods=['PUT'])
 @auth.login_required
-def update_driver(driver_id):
+def update_administration(administration_id):
     try:
         # Membuat dan memvalidasi skema
-        schema = UpdateDriverSchema(db_session=db.session, driver_id=driver_id)
+        schema = UpdateAdministrationSchema(db_session=db.session, administration_id=administration_id)
         try:
             data = schema.load(request.json)
         except ValidationError as err:
@@ -211,9 +156,9 @@ def update_driver(driver_id):
                 'errors': err.messages
             }), 400
             
-        # Dapatkan pengemudi dan pengguna terkait
-        driver = Driver.query.get(driver_id)
-        user = User.query.get(driver.user_id)
+        # Dapatkan admin dan pengguna terkait
+        admin = Administration.query.get(administration_id)
+        user = User.query.get(admin.user_id)
 
         # Begin transaction
         db.session.begin_nested()
@@ -223,24 +168,15 @@ def update_driver(driver_id):
         user.username = data.get('username', user.username)
         user.email = data.get('email', user.email)
         user.address = data.get('address', user.address)
-        
-        # Ubah data Pengemudi
-        driver.phone_number = data.get('phone_number', driver.phone_number)
-        driver.institution_id = data.get('institution_id', driver.institution_id)
 
         # Melakukan perubahan
         db.session.commit()
 
         return jsonify({
             'status': True,
-            'message': 'Pengemudi berhasil diperbarui',
+            'message': 'Admin berhasil diperbarui',
             'data': {
-                'user': user.as_dict(),
-                'driver': {
-                    'id': driver.id,
-                    'phone_number': driver.phone_number,
-                    'institution_id': driver.institution_id
-                }
+                'user': user.as_dict()
             }
         }), 200
 
@@ -260,22 +196,22 @@ def update_driver(driver_id):
             status=False,
             message= f'Terjadi kesalahan: {str(e)}'
         ), 500
-# Akhir Ubah
+# Akhir Ubah Admin
 
-# Hapus Pengemudi
-@driver_route.route('/<int:driver_id>', methods=['DELETE'])
+# Hapus Admin
+@admin_route.route('/<int:administration_id>', methods=['DELETE'])
 @auth.login_required
-def delete_driver(driver_id):
+def delete_admistration(administration_id):
     try:
-        # Query driver berdasarkan ID
-        driver = Driver.query.filter_by(id=driver_id).first()
-        if not driver:
+        # Query admin berdasarkan ID
+        admin = Administration.query.filter_by(id=administration_id).first()
+        if not admin:
             return jsonify({
                 'status': False,
-                'message': 'Pengemudi tidak ditemukan.'
+                'message': 'Admin tidak ditemukan.'
             }), 404
         
-        user_id = driver.user_id  # Simpan user_id untuk menghapus data user
+        user_id = admin.user_id  # Simpan user_id untuk menghapus data user
         
         # Mulai transaksi
         db.session.begin_nested()
@@ -283,8 +219,8 @@ def delete_driver(driver_id):
         # Hapus role dari tabel UserRole
         UserRole.query.filter_by(user_id=user_id).delete()
 
-        # Hapus data Driver
-        db.session.delete(driver)
+        # Hapus data Admin
+        db.session.delete(admin)
 
         # Hapus data User
         user = User.query.get(user_id)
@@ -296,7 +232,7 @@ def delete_driver(driver_id):
 
         return jsonify(
             status=True,
-            message='Pengemudi berhasil dihapus.'
+            message='Admin berhasil dihapus.'
         ), 200
 
     except Exception as e:
@@ -305,7 +241,7 @@ def delete_driver(driver_id):
             status=False,
             message=f'Terjadi kesalahan: {str(e)}'
         ), 500
-# Akhir Hapus Pengemudi
+# Akhir Hapus Admin
 
 # Kirim Email Verifikasi
 def send_email_verify(user) :
@@ -314,7 +250,7 @@ def send_email_verify(user) :
         subject="Verify Email Address",
         recipients=[user.email],
         sender=os.getenv('MAIL_USERNAME'),
-        html=render_template('institution/verify_email.html', token=token, name=user.name)
+        html=render_template('verify_email.html', token=token, name=user.name)
     )
     mail.send(msg)
 # Akhir Kirim Email Verifikasi
