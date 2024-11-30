@@ -61,7 +61,7 @@ def get_all_drivers():
 # Tambah Admin
 @admin_route.route('/', methods=['POST'])
 @auth.login_required
-def add_driver():
+def add_administration():
     try:
         # Validasi permintaan data
         schema = CreateAdministrationSchema(db_session=db.session)
@@ -143,7 +143,7 @@ def add_driver():
 # Ubah Admin
 @admin_route.route('/<int:administration_id>', methods=['PUT'])
 @auth.login_required
-def update_driver(administration_id):
+def update_administration(administration_id):
     try:
         # Membuat dan memvalidasi skema
         schema = UpdateAdministrationSchema(db_session=db.session, administration_id=administration_id)
@@ -201,7 +201,7 @@ def update_driver(administration_id):
 # Hapus Admin
 @admin_route.route('/<int:administration_id>', methods=['DELETE'])
 @auth.login_required
-def delete_driver(administration_id):
+def delete_admistration(administration_id):
     try:
         # Query admin berdasarkan ID
         admin = Administration.query.filter_by(id=administration_id).first()
