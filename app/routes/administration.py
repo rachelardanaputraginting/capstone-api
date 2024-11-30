@@ -198,6 +198,51 @@ def update_driver(administration_id):
         ), 500
 # Akhir Ubah Admin
 
+# Hapus Admin
+@admin_route.route('/<int:administration_id>', methods=['DELETE'])
+@auth.login_required
+def delete_driver(administration_id):
+    try:
+        # Query admin berdasarkan ID
+        admin = Administration.query.filter_by(id=administration_id).first()
+        if not admin:
+            return jsonify({
+                'status': False,
+                'message': 'Admin tidak ditemukan.'
+            }), 404
+        
+        user_id = admin.user_id  # Simpan user_id untuk menghapus data user
+        
+        # Mulai transaksi
+        db.session.begin_nested()
+
+        # Hapus role dari tabel UserRole
+        UserRole.query.filter_by(user_id=user_id).delete()
+
+        # Hapus data Admin
+        db.session.delete(admin)
+
+        # Hapus data User
+        user = User.query.get(user_id)
+        if user:
+            db.session.delete(user)
+
+        # Commit transaksi
+        db.session.commit()
+
+        return jsonify(
+            status=True,
+            message='Admin berhasil dihapus.'
+        ), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(
+            status=False,
+            message=f'Terjadi kesalahan: {str(e)}'
+        ), 500
+# Akhir Hapus Admin
+
 # Kirim Email Verifikasi
 def send_email_verify(user) :
     token = generate_verify_token(user.email)
