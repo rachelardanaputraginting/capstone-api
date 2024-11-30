@@ -1,7 +1,5 @@
 import os
 import secrets
-import random
-from datetime import datetime
 from flask import Blueprint, request, jsonify, render_template
 from flask_jwt_extended import create_access_token, get_jti, get_jwt_identity, get_jwt
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -26,7 +24,7 @@ from app.schemas.auth.reset_password_schema import ResetPasswordSchema
 
 auth_bp = Blueprint('auth', __name__)
 
-# Register User
+# Daftar Pengguna
 @auth_bp.route('/register', methods=['POST'])
 def register():
     role = request.json.get('role')
@@ -37,18 +35,22 @@ def register():
     elif role == 'institution':
         schema = InstitutionRegistrationSchema(db_session=db.session)
     else:
-        return jsonify({'success': False, 'message': 'Invalid role specified'}), 400
+        return jsonify({'status': False, 'message': 'Role yang dimasukkan tidak valid'}), 400
 
-    # Validasi data request
+    # Validasi permintaan data
     try:
         data = schema.load(request.json)
     except ValidationError as err:
-        return jsonify({'success': False, 'errors': err.messages}), 400
+        return jsonify({
+            'status': False,
+            'message': 'Validasi data gagal',
+            'errors': err.messages
+        }), 400
 
     # Buat role user
     role_obj = Role.query.filter_by(name=role).first()
     if not role_obj:
-        return jsonify({'success': False, 'message': 'Role not found'}), 404
+        return jsonify({'status': False, 'message': 'Role tidak ditemukan'}), 404
 
     # Simpan data user ke database
     try:
@@ -98,8 +100,8 @@ def register():
         send_email_verify(new_user)
 
         return jsonify({
-            'success': True,
-            'message': 'User registered successfully.',
+            'status': True,
+            'message': 'Pengguna berhasil terdaftar.',
             'user': {
                 'id': new_user.id,
                 'name': new_user.name,
@@ -111,10 +113,10 @@ def register():
 
     except IntegrityError:
         db.session.rollback()
-        return jsonify({'success': False, 'message': 'Registration failed due to a database constraint'}), 500
-# End Register User
+        return jsonify({'status': False, 'message': 'Pendaftaran gagal karena kendala basis data'}), 500
+# Akhir Daftar Pengguna
 
-# Send Email Verification
+# Kirim Email Verifikasi
 def send_email_verify(user) :
     token = generate_verify_token(user.email)
     msg = Message(
@@ -124,9 +126,9 @@ def send_email_verify(user) :
         html=render_template('verify_email.html', token=token, name=user.name)
     )
     mail.send(msg)
-# End Send Email Verification
+# Akhir Kirim Email Verifikasi
 
-# Send Email Forgot Password
+# Kirim Email Lupa Kata Sandi
 def send_forgot_password(user, reset_token):
     # URL untuk aplikasi mobile
     app_link = f"instahelp://reset-password?token={reset_token}"
@@ -146,9 +148,9 @@ def send_forgot_password(user, reset_token):
         )
     )
     mail.send(msg)
-# End Send Email Forgot Password
+# Akhir Kirim Email Lupa Kata Sandi
 
-# Verify Email
+# Verifikasi Email
 @auth_bp.route('/verify/<token>', methods=['GET'])
 def verify_email(token):
     try:
@@ -172,18 +174,23 @@ def verify_email(token):
         return render_template('verify_invalid.html'), 500
     except Exception as e:
         return render_template('verify_expired.html'), 419
+# Akhir Verifikasi Email
 
-# Login
+# Masuk
 @auth_bp.route('/login', methods=['POST'])
 def login():
     # Masuk ke LoginSchema untuk validasi
     schema = LoginSchema()
     
-    # Validasi data request
+    # Validasi permintaan data
     try:
         data = schema.load(request.json)
     except ValidationError as err:
-        return jsonify({'success': False, 'errors': err.messages}), 400
+        return jsonify({
+            'status': False,
+            'message': 'Validasi data gagal',
+            'errors': err.messages
+        }), 400
         
     email = data['email']
     password = data['password']
@@ -197,22 +204,22 @@ def login():
                 message="Please verify your email before logging in."
             ), 400
         
-        # Convert user.id to string to avoid the "Subject must be a string" error
+        # Ubah user.id menjadi string untuk menghindari kesalahan “Subjek harus berupa string”
         access_token = create_access_token(identity=str(user.id), fresh=True)
         
-        # Create Login Log
+        # Membuat Catatan Masuk
         jti = get_jti(access_token)
         try:
             login_log = LoginLog(jti)
         except Exception as e:
             return jsonify(
-                success=False,
-                message="Login successful but failed to create log. Please try again."
+                status=False,
+                message="Berhasil masuk tetapi gagal membuat log. Silakan coba lagi."
             ), 500
         
         response = jsonify(
-            success=True,
-            message="You have successfully logged in.",
+            status=True,
+            message="Anda telah berhasil masuk.",
             data={
                 "access_token": access_token
             }
@@ -220,12 +227,12 @@ def login():
         return response, 200
     else:
         return jsonify(
-            success=False,
-            message="Login failed. Please check your credentials and try again."
+            status=False,
+            message="Gagal masuk. Silakan periksa kredensial Anda dan coba lagi."
         ), 401
-# End Login
+# Akhir Masuk
 
-# Me
+# Data Saya
 @auth_bp.route('/me', methods=['GET'])
 @auth.login_required
 def me():
@@ -260,8 +267,9 @@ def me():
             "message": "An unexpected error occurred.",
             "error": str(e)
         }), 500
+# Akhir Data Saya
 
-# Logout
+# Keluar
 @auth_bp.route('/logout', methods=['POST'])
 @auth.login_required
 def logout():
@@ -275,7 +283,7 @@ def logout():
         if log is None:
             return jsonify(
                 status=False,
-                message="Logout failed. No active session found for this token."
+                message="Gagal keluar. Tidak ditemukan sesi aktif untuk token ini."
             ), 400
 
         # Hapus log / tandai logout
@@ -294,23 +302,28 @@ def logout():
             status=False,
             message="An error occurred during logout. Please try again later."
         ), 500
+# Akhir Keluar
 
-# Forgot Password
+# Lupa Kata Sandi
 @auth_bp.route('/forgot-password', methods=['POST'])
 def forgotPassword():
     schema = ForgotPasswordSchema()
     
-    # Validasi data request
+    # Validasi permintaan data
     try:
         data = schema.load(request.json)
     except ValidationError as err:
-        return jsonify({'success': False, 'errors': err.messages}), 400
+        return jsonify({
+            'status': False,
+            'message': 'Validasi data gagal',
+            'errors': err.messages
+        }), 400
 
     email = data['email']
     user = User.query.filter_by(email=email).first()
 
     if user:
-        reset_token = secrets.token_hex(16)  # Generate token
+        reset_token = secrets.token_hex(16)  # Hasilkan token
         reset_entry = ResetPassword(email=email, reset_token=reset_token)  # Simpan token di database
         db.session.add(reset_entry)
         db.session.commit()
@@ -319,26 +332,30 @@ def forgotPassword():
 
         return jsonify(
             status=True,
-            message="Reset password email has been sent successfully.",
+            message="Email pengaturan ulang kata sandi telah berhasil dikirim.",
             data={"reset_token": reset_token}
         ), 200
 
     return jsonify(
         status=False,
-        message="Account not found for the provided email."
+        message="Akun tidak ditemukan untuk email yang diberikan."
     ), 400
-# End Forgot Password
+# Akhir Lupa Kata Sandi
 
-# Reset Password
+# Atur Ulang Password
 @auth_bp.route('/reset-password/<token>', methods=['POST'])
 def resetPassword(token):
     schema = ResetPasswordSchema()
     
-    # Validasi data request
+    # Validasi permintaan data
     try:
         data = schema.load(request.json)
     except ValidationError as err:
-        return jsonify({'success': False, 'errors': err.messages}), 400
+        return jsonify({
+            'status': False,
+            'message': 'Validasi data gagal',
+            'errors': err.messages
+        }), 400
 
     rp = ResetPassword.query.filter_by(reset_token=token).first()
 
@@ -347,7 +364,7 @@ def resetPassword(token):
         user = User.query.filter_by(email=rp.email).first()
 
         if user:
-            # Update password
+            # Ubah kata sandi
             user.password = generate_password_hash(password.strip())
             db.session.commit()
 
@@ -357,23 +374,23 @@ def resetPassword(token):
 
             return jsonify(
                 status=True,
-                message='Password successfully changed.'
+                message='Kata sandi berhasil diubah.'
             ), 200
 
     return jsonify(
         status=False,
-        message='Token is invalid.'
+        message='Token tidak valid.'
     ), 400
-# End Reset Password
+# Akhir Atur Ulang Kata Sandi
 
-# Generate Verify Token
+# Hasilkan Token Verifikasi
 def generate_verify_token(email) :
     secret_key = os.getenv('SECRET_KEY') 
     serializer = URLSafeTimedSerializer(secret_key)
     return serializer.dumps(email, salt='salt_key')
-# End Generate Verify Token
+# Akhir Hasilkan Token Verifikasi
 
-# Check Verify Token
+# Periksa Verifikasi Token
 def verify_token(token, expiration=3600):
     secret_key = os.getenv('SECRET_KEY')
     serializer = URLSafeTimedSerializer(secret_key)
@@ -386,4 +403,4 @@ def verify_token(token, expiration=3600):
         return email
     except:
         return None
-# End Check Verify Token
+# Akhir Periksa Verifikasi Token

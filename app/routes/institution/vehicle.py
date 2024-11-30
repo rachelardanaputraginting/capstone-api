@@ -1,15 +1,9 @@
-import os
-from app.extensions import db, mail
+from app.extensions import db
 from marshmallow import ValidationError
-from flask import Blueprint, request, jsonify, render_template
-from werkzeug.security import generate_password_hash
-from sqlalchemy.exc import IntegrityError
-from flask_jwt_extended import create_access_token
-from itsdangerous import URLSafeTimedSerializer
-from flask_mail import Message
+from flask import Blueprint, request, jsonify
 
 from utils import auth
-from app.models.models import Vehicle, User, Vehicle, Institution, Driver
+from app.models.models import Vehicle, User, Vehicle, Driver
 
 # schemas
 from app.schemas.vehicle.create_schema import CreateVehicleSchema
@@ -17,19 +11,14 @@ from app.schemas.vehicle.update_schema import UpdateVehicleSchema
 
 vehicle_route = Blueprint('institutions/vehicles', __name__)
 
-from sqlalchemy.orm import aliased
-
-# Get All
+# Ambil Data
 @vehicle_route.route('/', methods=['GET'])
 @auth.login_required
 def get_vehicles():
-    # Get search query parameters
+    # Dapatkan parameter kueri penelusuran
     search_name = request.args.get('name', None)
 
-    # Create an alias for the User table to avoid conflict
-    institution_user = aliased(User)
-
-    # Build the query
+    # Bangun kuer
     query = db.session.query(
         Vehicle.id.label('vehicle_id'),
         Vehicle.is_ready,
@@ -39,16 +28,17 @@ def get_vehicles():
         Driver.id.label('driver_id'),
         User.name.label('driver_name'),
     ).join(Driver, Vehicle.driver_id == Driver.id) \
-     .join(User, Driver.user_id == User.id)  # Use alias here
+     .join(User, Driver.user_id == User.id)  # Gunakan alias di sini
 
-    # Apply filters
+    
+    # Terapkan filter
     if search_name:
-        query = query.filter(User.name.ilike(f'%{search_name}%'))  # Filter by driver name
+        query = query.filter(User.name.ilike(f'%{search_name}%'))  # Filter berdasarkan nama driver
 
-    # Execute the query
+    # Jalankan kueri
     vehicles = query.all()
 
-    # Prepare the response
+    # Siapkan datanya
     vehicle_data = [
         {
             "id": vehicle.vehicle_id,
@@ -64,43 +54,36 @@ def get_vehicles():
         for vehicle in vehicles
     ]
 
-    # Return the response
     return jsonify(
         status=True,
         message='Vehicles loaded successfully.',
         data=vehicle_data
     ), 200
-# End Get All
+# Akhir Ambil Data
 
-# Create
+# Tambah Kendaraan
 @vehicle_route.route('/', methods=['POST'])
 @auth.login_required
 def add_vehicles():
-    institution = request.json.get('institution_id')
-    driver = request.json.get('driver_id')
-    
-    schema = CreateVehicleSchema(db_session=db.session)
-
-    # Validasi data request
+     # Simpan data user ke database
     try:
-        data = schema.load(request.json)
-    except ValidationError as err:
-        return jsonify({'success': False, 'errors': err.messages}), 400
-            
-    institution_obj = Institution.query.filter_by(id=institution).first()
-    if not institution_obj:
-        return jsonify({'success': False, 'message': 'Institution not found'}), 404
-    
-    driver_obj = Institution.query.filter_by(id=institution).first()
-    if not driver_obj:
-        return jsonify({'success': False, 'message': 'Driver not found'}), 404
+        schema = CreateVehicleSchema(db_session=db.session)
 
-    # Simpan data user ke database
-    try:
+        # Validasi permintaan data
+        try:
+            data = schema.load(request.json)
+        except ValidationError as err:
+            return jsonify({
+                'status': False,
+                'message': 'Validasi data gagal',
+                'errors': err.messages
+            }), 400
+        
         new_vehicles = Vehicle(
             institution_id=data['institution_id'],
             driver_id=data['driver_id'],
             name=data['name'],
+            picture=data['picture'],
             description=data['description'],
             is_ready=data['is_ready']
         )
@@ -110,17 +93,131 @@ def add_vehicles():
         db.session.commit()
 
         return jsonify({
-            'success': True,
-            'message': 'Vehicle created successfully.',
-            'user': {
+            'status': True,
+            'message': 'Kendaraan berhasil dibuat',
+            'data': {
                 'id': new_vehicles.id,
                 'institution_id': new_vehicles.institution_id,
                 'driver_id': new_vehicles.driver_id,
                 'is_ready': new_vehicles.is_ready,
+                'picture': new_vehicles.picture,
             }
         }), 201
 
-    except IntegrityError:
+    except Exception as e:
+        # Rollback untuk semua jenis kesalahan
         db.session.rollback()
-        return jsonify({'success': False, 'message': 'Add Vehicle failed due to a database constraint'}), 500
-# End Create
+        
+        # Tangani ValidationError secara spesifik
+        if isinstance(e, ValidationError):
+            return jsonify({
+                'status': False,
+                'message': 'Kesalahan validasi',
+                'errors': e.messages
+            }), 400
+        
+        # Tangani kesalahan umum
+        return jsonify(
+            status=False,
+            message= f'Terjadi kesalahan: {str(e)}'
+        ), 500
+# Akhir Tambah Kendaraan
+
+# Ubah Kendaraan 
+@vehicle_route.route('/<int:vehicle_id>', methods=['PUT'])
+@auth.login_required
+def update_vehicle(vehicle_id):
+    try:
+        # Buat skema dengan data kendaraan saat ini
+        schema = UpdateVehicleSchema(db_session=db.session, vehicle_id=vehicle_id)
+
+        # Validasi permintaan data
+        try:
+            data = schema.load(request.json)
+        except ValidationError as err:
+            return jsonify({
+                'status': False,
+                'message': 'Validasi data gagal',
+                'errors': err.messages
+            }), 400
+
+         # Get vehicle 
+        vehicle = Vehicle.query.filter(vehicle_id).first()
+
+        # Perbarui data kendaraan dengan fallback ke nilai yang ada
+        vehicle.name = data.get('name', vehicle.name)
+        vehicle.description = data.get('description', vehicle.description)
+        vehicle.institution_id = data.get('institution_id', vehicle.institution_id)
+        vehicle.driver_id = data.get('driver_id', vehicle.driver_id)
+        vehicle.is_ready = data.get('is_ready', vehicle.is_ready)
+        vehicle.picture = data.get('picture', vehicle.picture)
+
+        # Lakukan perubahan
+        db.session.commit()
+
+        return jsonify({
+            'status': True,
+            'message': 'Kendaraan berhasil diperbarui',
+            'data': {
+                'vehicle': {
+                    'id': vehicle.id,
+                    'name': vehicle.name,
+                    'description': vehicle.description,
+                    'institution_id': vehicle.institution_id,
+                    'driver_id': vehicle.driver_id,
+                    'is_ready': vehicle.is_ready,
+                    'picture': vehicle.picture
+                }
+            }
+        }), 200
+
+    except Exception as e:
+        # Rollback untuk semua jenis kesalahan
+        db.session.rollback()
+        
+        # Tangani ValidationError secara spesifik
+        if isinstance(e, ValidationError):
+            return jsonify({
+                'status': False,
+                'message': 'Kesalahan validasi',
+                'errors': e.messages
+            }), 400
+        
+        # Tangani kesalahan umum
+        return jsonify(
+            status=False,
+            message= f'Terjadi kesalahan: {str(e)}'
+        ), 500
+# Akhir Ubah Kendaraan 
+
+@vehicle_route.route('/<int:vehicle_id>', methods=['DELETE'])
+@auth.login_required
+def delete_driver(vehicle_id):
+    try:
+        # Query vehicle berdasarkan ID
+        vehicle = Vehicle.query.filter_by(id=vehicle_id).first()
+        
+        if not vehicle:
+            return jsonify({
+                'status': False,
+                'message': 'Kendaraan tidak ditemukan.'
+            }), 404
+
+        # Hapus data Vehicle
+        db.session.delete(vehicle)
+
+        # Commit transaksi
+        db.session.commit()
+
+        return jsonify(
+            status= True,
+            message='Kendaraan berhasil dihapus.'
+        ), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify(
+            status=False,
+            message= f'Terjadi kesalahan: {str(e)}'
+        ), 500
+# Akhir Hapus Kendaraan

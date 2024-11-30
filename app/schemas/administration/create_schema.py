@@ -1,9 +1,9 @@
 from marshmallow import Schema, fields, validate, ValidationError
 from marshmallow.decorators import validates_schema, validates
 from sqlalchemy.orm import Session
-from app.models.models import User, Driver, Institution, Resident
+from app.models.models import User
 
-class CreateDriverSchema(Schema):
+class CreateAdministrationSchema(Schema):
     # Bidang pengguna dasar
     name = fields.String(
         required=True,
@@ -38,25 +38,12 @@ class CreateDriverSchema(Schema):
     # Bidang khusus pengemudi
     role = fields.String(
         required=True,
-        validate=validate.OneOf(['driver'], error="Role hanya boleh diisi dengan 'driver'."),
+        validate=validate.OneOf(['administration'], error="Role hanya boleh diisi dengan 'administration'."),
         error_messages={"required": "Role wajib diisi."}
-    )
-    
-    phone_number = fields.String(
-        required=True,
-        validate=[
-            validate.Length(min=10, max=13, error="Nomor telepon harus antara 10 hingga 13 digit."),
-            validate.Regexp(r'^\d+$', error="Nomor telepon hanya boleh berisi angka.")
-        ],
-        error_messages={"required": "Nomor telepon wajib diisi."}
-    )
-    institution_id = fields.Integer(
-        required=True,
-        error_messages={"required": "ID institusi wajib diisi."}
     )
 
     def __init__(self, db_session: Session, *args, **kwargs):
-        """Initialize schema with a database session."""
+        # Inisialisasi skema dengan sesi database.
         super().__init__(*args, **kwargs)
         self.db_session = db_session
 
@@ -69,20 +56,6 @@ class CreateDriverSchema(Schema):
     def validate_username_unique(self, username):
         if self.db_session.query(User).filter(User.username == username).first():
             raise ValidationError("Username sudah terdaftar.")
-    
-    @validates("phone_number")
-    def validate_phone_number_unique(self, phone_number):
-        if self.db_session.query(Driver).filter_by(phone_number=phone_number).first():
-            raise ValidationError("Nomor telepon sudah terdaftar.")
-        elif self.db_session.query(Resident).filter_by(phone_number=phone_number).first():
-            raise ValidationError("Nomor telepon sudah terdaftar.")
-
-    @validates('institution_id')
-    def validate_institution_id(self, value):
-        # Memastikan institution_id ada di database
-        institution = Institution.query.get(value)
-        if institution is None:
-            raise ValidationError("Institusi dengan ID yang diberikan tidak ditemukan.")
 
     @validates_schema
     def validate_passwords_match(self, data, **kwargs):

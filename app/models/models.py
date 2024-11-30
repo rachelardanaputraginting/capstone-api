@@ -1,7 +1,5 @@
 from app.extensions import db
-from datetime import datetime
 from enum import Enum
-from sqlalchemy.types import BigInteger
 
 class Gender(str, Enum):
     MAN = "man"
@@ -90,8 +88,8 @@ class Institution(db.Model):
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     user_id = db.Column(db.BigInteger, db.ForeignKey('users.id'), nullable=False)
     description = db.Column(db.Text, nullable=False)
-    latitude = db.Column(db.Float)
-    longitude = db.Column(db.Float)
+    latitude = db.Column(db.Numeric(9, 6), nullable=False)
+    longitude = db.Column(db.Numeric(9, 6), nullable=False)
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.now())
     updated_at = db.Column(db.TIMESTAMP, onupdate=db.func.now())
 

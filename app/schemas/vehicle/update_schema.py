@@ -1,112 +1,97 @@
 from marshmallow import Schema, fields, validate, ValidationError, EXCLUDE
-from marshmallow.decorators import validates_schema, validates
+from marshmallow.decorators import validates, validates_schema
 from sqlalchemy.orm import Session
-from app.models.models import User, Driver, Institution, Resident
-from sqlalchemy import and_
+from app.models.models import Institution, Vehicle
 
 class UpdateVehicleSchema(Schema):
     class Meta:
-        unknown = EXCLUDE
+        unknown = EXCLUDE  # Abaikan field yang tidak dikenal
 
-    # Base user fields
-    name = fields.String(validate=[validate.Length(min=1, max=255)], required=False, allow_none=False)
-    email = fields.Email(validate=[validate.Length(max=255)], required=False, allow_none=False)
-    username = fields.String(validate=[validate.Length(min=1, max=255)], required=False, allow_none=False)
-    address = fields.String(validate=[validate.Length(min=1, max=500)], required=False, allow_none=False)
-    
-    # Driver specific fields
-    phone_number = fields.String(validate=[
-        validate.Length(min=10, max=13),
-        validate.Regexp(r'^\d+$', error='Phone number must contain only digits')
-    ], required=False, allow_none=False)
-    institution_id = fields.Integer(required=False, allow_none=False)
+    name = fields.String(
+        validate=[validate.Length(min=1, max=50, error="Nama kendaraan harus antara 1 hingga 50 karakter.")], 
+        required=False,  # Tidak wajib
+        allow_none=False,  # Tapi jika diberikan, tidak boleh None
+        error_messages={
+            "null": "Nama kendaraan tidak boleh kosong.",
+            "invalid": "Format nama kendaraan tidak valid."
+        }
+    )
+    description = fields.String(
+        required=False, 
+        validate=[validate.Length(max=500, error="Deskripsi tidak boleh lebih dari 500 karakter.")],
+        error_messages={
+            "null": "Deskripsi tidak boleh kosong.",
+            "invalid": "Format deskripsi tidak valid."
+        }
+    )
+    institution_id = fields.Integer(
+        required=False,
+        error_messages={
+            "null": "ID institusi tidak boleh kosong.",
+            "invalid": "ID institusi harus berupa angka."
+        }
+    )
+    driver_id = fields.Integer(
+        required=False,
+        error_messages={
+            "null": "ID pengemudi tidak boleh kosong.",
+            "invalid": "ID pengemudi harus berupa angka."
+        }
+    )
+    is_ready = fields.Boolean(
+        required=False,
+        error_messages={
+            "null": "Status kesiapan kendaraan tidak boleh kosong.",
+            "invalid": "Status kesiapan kendaraan harus berupa nilai benar/salah."
+        }
+    )
+    picture = fields.String(
+        validate=[validate.Length(max=255, error="Panjang nama gambar tidak boleh melebihi 255 karakter.")], 
+        required=False,
+        error_messages={
+            "null": "Gambar tidak boleh kosong.",
+            "invalid": "Format gambar tidak valid."
+        }
+    )
 
-    def __init__(self, db_session: Session, driver_id: int, *args, **kwargs):
+    def __init__(self, db_session: Session, vehicle_id: int, *args, **kwargs):
+        # Inisialisasi skema dengan sesi database dan ID kendaraan.
         super().__init__(*args, **kwargs)
         self.db_session = db_session
-        self.driver_id = driver_id
-        # Get the current driver and user records
-        self.current_driver = self.db_session.query(Driver).get(driver_id)
-        self.current_user = self.db_session.query(User).get(self.current_driver.user_id) if self.current_driver else None
+        self.vehicle_id = vehicle_id
+        # Ambil kendaraan saat ini untuk referensi
+        # Pindahkan pengecekan ke __init__
+        self.current_vehicle = self.db_session.query(Vehicle).get(vehicle_id)
+        if not self.current_vehicle:
+            raise ValidationError({'vehicle_id': 'Kendaraan tidak ditemukan'})
 
-    @validates("email")
-    def validate_email_unique(self, email):
-        if not email:  # Skip validation if email not provided
-            return
-            
-        if not self.current_user:
-            raise ValidationError("Current user not found")
-            
-        # Check if email exists for any other user
-        existing_user = self.db_session.query(User).filter(
-            and_(
-                User.email == email,
-                User.id != self.current_user.id
-            )
-        ).first()
-        
-        if existing_user:
-            raise ValidationError("Email is already taken")
-
-    @validates("username")
-    def validate_username_unique(self, username):
-        if not username:  # Skip validation if username not provided
-            return
-            
-        if not self.current_user:
-            raise ValidationError("Current user not found")
-            
-        # Check if username exists for any other user
-        existing_user = self.db_session.query(User).filter(
-            and_(
-                User.username == username,
-                User.id != self.current_user.id
-            )
-        ).first()
-        
-        if existing_user:
-            raise ValidationError("Username is already taken")
-    
-    @validates("phone_number")
-    def validate_phone_number_unique(self, phone_number):
-        if not phone_number:  # Skip validation if phone_number not provided
-            return
-            
-        if not self.current_driver:
-            raise ValidationError("Current driver not found")
-            
-        # Check if phone number exists in drivers table (excluding current driver)
-        existing_driver = self.db_session.query(Driver).filter(
-            and_(
-                Driver.phone_number == phone_number,
-                Driver.id != self.current_driver.id
-            )
-        ).first()
-        
-        if existing_driver:
-            raise ValidationError("Phone number is already taken by another driver")
-
-        # Check if phone number exists in residents table
-        existing_resident = self.db_session.query(Resident).filter(
-            Resident.phone_number == phone_number
-        ).first()
-        
-        if existing_resident:
-            raise ValidationError("Phone number is already taken by a resident")
-    
     @validates('institution_id')
     def validate_institution_id(self, value):
-        if not value:  # Skip validation if institution_id not provided
-            return
-            
-        institution = self.db_session.query(Institution).get(value)
-        if not institution:
-            raise ValidationError("Institution with the given ID does not exist")
+        """Validasi ID institusi jika diberikan."""
+        if value is not None:  # Hanya validasi jika nilai diberikan
+            institution = self.db_session.query(Institution).get(value)
+            if not institution:
+                raise ValidationError("Institusi dengan ID yang diberikan tidak ditemukan.")
 
+    @validates('driver_id')
+    def validate_driver_id(self, value):
+        # Validasi ID pengemudi jika diberikan.
+        if value is not None:  # Hanya validasi jika nilai diberikan
+            existing_driver = self.db_session.query(Vehicle).get(value)
+            if not existing_driver:
+                raise ValidationError("Pengemudi dengan ID yang diberikan tidak ditemukan.")
+    
     @validates_schema
-    def validate_passwords_match(self, data, **kwargs):
-        if data.get('password'):
-            if not data.get('password_confirmation'):
-                raise ValidationError('Password confirmation is required when setting a new password.')
-            if data['password'] != data['password_confirmation']:
-                raise ValidationError('Passwords do not match', 'password_confirmation')
+    def validate_unique_constraints(self, data, **kwargs):
+        """Validasi batasan unik untuk kendaraan."""
+        # Pastikan driver tidak digunakan di kendaraan lain
+        if 'driver_id' in data:
+            existing_vehicle = self.db_session.query(Vehicle).filter(
+                Vehicle.driver_id == data['driver_id'],
+                Vehicle.id != self.vehicle_id
+            ).first()
+            
+            if existing_vehicle:
+                raise ValidationError({
+                    'driver_id': 'Pengemudi sudah terdaftar pada kendaraan lain'
+                })
