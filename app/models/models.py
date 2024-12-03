@@ -6,6 +6,12 @@ class Gender(str, Enum):
     FEMALE = "female"
 
 class IncidentStatus(str, Enum):
+    REPORTED = 'reported'
+    HANDLED = 'handled'
+    COMPLETED = 'completed'
+    REJECTED = 'rejected'
+    
+class IncidentVehicleDriverStatus(str, Enum):
     ON_ROUTE = "on-route"
     ARRIVED = "arrived"
     COMPLETED = "completed"
@@ -135,7 +141,7 @@ class Incident(db.Model):
     resident_id = db.Column(db.BigInteger, db.ForeignKey('residents.id'), nullable=False)
     institution_id = db.Column(db.BigInteger, db.ForeignKey('institutions.id'), nullable=False)
     description = db.Column(db.Text)
-    status = db.Column(db.Boolean, default=False)
+    status = db.Column(db.Enum(IncidentStatus), nullable=False, default=IncidentStatus.REPORTED)
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
     picture = db.Column(db.String(255), nullable=True)
@@ -156,7 +162,7 @@ class IncidentVehicleDriver(db.Model):
     incident_id = db.Column(db.BigInteger, db.ForeignKey('incidents.id'), nullable=False)
     vehicle_id = db.Column(db.BigInteger, db.ForeignKey('vehicles.id'), nullable=False)
     driver_id = db.Column(db.BigInteger, db.ForeignKey('drivers.id'), nullable=False)
-    status = db.Column(db.Enum(IncidentStatus), nullable=False)
+    status = db.Column(db.Enum(IncidentVehicleDriverStatus), nullable=False)
     assigned_at = db.Column(db.TIMESTAMP)
     completed_at = db.Column(db.TIMESTAMP)
 
