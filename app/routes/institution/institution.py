@@ -1,7 +1,12 @@
-from app.extensions import db, mail
+from flask_jwt_extended import get_jwt_identity
+from app.extensions import db
+from marshmallow import ValidationError
 from flask import Blueprint, request, jsonify
 from utils import auth
-from app.models.models import Institution, User, Vehicle
+from utils.datetime import get_current_time_in_timezone
+from app.models.models import Institution, User, Vehicle, Driver, Incident, Resident
+ 
+from app.schemas.incident.create_schema import CreateIncidentSchema
 
 institution_route = Blueprint('institutions', __name__)
 
@@ -63,7 +68,159 @@ def get_all_institutions():
     ), 200
 # End Get All 
 
-# Create 
-def add_institution():
-    return "Halo"
-#End Create
+# Ambil Instansi berdasarkan ID
+@institution_route.route('/<int:institution_id>', methods=['GET'])
+@auth.login_required
+def get_institution_by_id(institution_id):
+    # Kueri untuk mendapatkan data instansi berdasarkan ID
+    institution = db.session.query(
+        Institution.id,
+        User.id.label('user_id'),
+        User.username,
+        User.avatar,
+        User.address,
+        User.name,
+        Institution.latitude,
+        Institution.longitude,
+        Institution.description
+    ).join(User, Institution.user_id == User.id) \
+        .filter(Institution.id == institution_id) \
+        .first()
+
+    # Jika data tidak ditemukan
+    if not institution:
+        return jsonify({
+            'status': False,
+            'message': 'Instansi tidak ditemukan.'
+        }), 404
+
+    # Cek ketersediaan kendaraan siap pakai
+    ready_vehicle_count = db.session.query(Vehicle).filter(
+        Vehicle.institution_id == institution.id,
+        Vehicle.is_ready == True
+    ).count()
+
+    # Status instansi: aktif jika ada kendaraan yang siap pakai, tidak aktif jika tidak ada.
+    institution_status = "Tersedia" if ready_vehicle_count > 0 else "Kosong"
+
+    # Menyiapkan data instansi
+    institution_data = {
+        "id": institution.id,
+        "username": institution.username,
+        "address": institution.address,
+        "avatar": institution.avatar,
+        "name": institution.name,
+        "latitude": institution.latitude,
+        "longitude": institution.longitude,
+        "description": institution.description,
+        "status": institution_status
+    }
+
+    # Kueri Kendaraan berdasarkan institution_id dan User
+    vehicles = db.session.query(
+        Vehicle.id,
+        Vehicle.name,
+        Vehicle.description,
+        Vehicle.is_ready,
+        User.id.label('driver_id'),
+        User.name.label('driver_name')
+    ).join(Driver, Driver.id == Vehicle.driver_id) \
+     .join(User, User.id == Driver.user_id) \
+     .filter(Vehicle.institution_id == institution_id) \
+     .all()
+
+    # Menyiapkan data kendaraan
+    vehicle_data = [
+        {
+            "id": vehicle.id,
+            "name": vehicle.name,
+            "description": vehicle.description,
+            "is_ready": vehicle.is_ready,
+            "driver": {
+                "id": vehicle.driver_id,
+                "name": vehicle.driver_name,
+            }
+        }
+        for vehicle in vehicles
+    ]
+
+    # Menggabungkan data kendaraan ke dalam data instansi
+    institution_data["vehicles"] = vehicle_data
+
+    # Mengembalikan respons
+    return jsonify(
+        status=True,
+        message='Rincian Instansi berhasil dimuat.',
+        data=institution_data
+    ), 200
+# Akhir Ambil Instansi berdasarkan ID
+
+# Tambah Laporan
+@institution_route.route('/<int:institution_id>/incidents', methods=['POST'])
+@auth.login_required
+def add_incident(institution_id):
+    # Ambil user berdasarkan data login
+    user_id = get_jwt_identity()
+    resident_id = Resident.query.filter_by(user_id = user_id).with_entities(Resident.id).scalar()
+    print(resident_id)
+
+     # Simpan data incident ke database
+    try:
+        schema = CreateIncidentSchema(db_session=db.session)
+
+        # Validasi permintaan data
+        try:
+            data = schema.load(request.json)
+        except ValidationError as err:
+            return jsonify({
+                'status': False,
+                'message': 'Validasi data gagal',
+                'errors': err.messages
+            }), 400
+        
+        new_incident = Incident(
+            institution_id=institution_id,
+            resident_id=resident_id,
+            description=data['description'],
+            latitude=data['latitude'],
+            longitude=data['longitude'],
+            picture=data['picture'],
+            reported_at=get_current_time_in_timezone('Asia/Jakarta')  # WIB
+        )
+        db.session.add(new_incident)
+
+        # Simpan semua perubahan ke database
+        db.session.commit()
+
+        return jsonify({
+            'status': True,
+            'message': 'Laporan berhasil dibuat',
+            'data': {
+                'id': new_incident.id,
+                'institution_id': new_incident.institution_id,
+                'resident_id': new_incident.resident_id,
+                'description': new_incident.description,
+                'latitude': new_incident.latitude,
+                'longitude': new_incident.longitude,
+                'picture': new_incident.picture,
+            }
+        }), 201
+
+    except Exception as e:
+        # Rollback untuk semua jenis kesalahan
+        db.session.rollback()
+        
+        # Tangani ValidationError secara spesifik
+        if isinstance(e, ValidationError):
+            return jsonify({
+                'status': False,
+                'message': 'Kesalahan validasi',
+                'errors': e.messages
+            }), 400
+        
+        # Tangani kesalahan umum
+        return jsonify(
+            status=False,
+            message= f'Terjadi kesalahan: {str(e)}'
+        ), 500
+# Akhir Tambah Laporan

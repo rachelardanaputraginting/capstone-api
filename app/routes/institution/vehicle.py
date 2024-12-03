@@ -97,6 +97,7 @@ def add_vehicles():
             'message': 'Kendaraan berhasil dibuat',
             'data': {
                 'id': new_vehicles.id,
+                'name': new_vehicles.name,
                 'institution_id': new_vehicles.institution_id,
                 'driver_id': new_vehicles.driver_id,
                 'is_ready': new_vehicles.is_ready,

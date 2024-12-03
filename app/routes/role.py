@@ -1,4 +1,3 @@
-import os
 from app.extensions import db
 from marshmallow import ValidationError
 from flask import Blueprint, request, jsonify
@@ -27,7 +26,7 @@ def get_roles():
     
     # Terapkan filter
     if search_name:
-        query = query.filter(Role.name.ilike(f'%{search_name}%'))  # Filter berdasarkan nama driver
+        query = query.filter(Role.name.ilike(f'%{search_name}%'))  # Filter berdasarkan nama role
 
     # Jalankan kueri
     roles = query.all()
@@ -162,6 +161,7 @@ def update_role(role_id):
         ), 500
 # Akhir Ubah Role 
 
+# Hapus Role
 @role_route.route('/<int:role_id>', methods=['DELETE'])
 @auth.login_required
 def delete_role(role_id):

@@ -2,8 +2,8 @@ from app.extensions import db
 from enum import Enum
 
 class Gender(str, Enum):
-    MAN = "man"
-    WOMEN = "women"
+    MALE = "male"
+    FEMALE = "female"
 
 class IncidentStatus(str, Enum):
     ON_ROUTE = "on-route"
@@ -138,6 +138,7 @@ class Incident(db.Model):
     status = db.Column(db.Boolean, default=False)
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
+    picture = db.Column(db.String(255), nullable=True)
     completed_at = db.Column(db.TIMESTAMP)
     reported_at = db.Column(db.TIMESTAMP)
     handle_at = db.Column(db.TIMESTAMP)
@@ -149,8 +150,8 @@ class Incident(db.Model):
     resident = db.relationship('Resident', backref='incidents')
     institution = db.relationship('Institution', backref='incidents')
 
-class IncidentVehicleOfficer(db.Model):
-    __tablename__ = 'incident_vehicle_officers'
+class IncidentVehicleDriver(db.Model):
+    __tablename__ = 'incident_vehicle_drivers'
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     incident_id = db.Column(db.BigInteger, db.ForeignKey('incidents.id'), nullable=False)
     vehicle_id = db.Column(db.BigInteger, db.ForeignKey('vehicles.id'), nullable=False)
@@ -160,6 +161,6 @@ class IncidentVehicleOfficer(db.Model):
     completed_at = db.Column(db.TIMESTAMP)
 
     # Relationships
-    incident = db.relationship('Incident', backref='incident_vehicle_officers')
-    vehicle = db.relationship('Vehicle', backref='incident_vehicle_officers')
-    driver = db.relationship('Driver', backref='incident_vehicle_officers')
+    incident = db.relationship('Incident', backref='incident_vehicle_drivers')
+    vehicle = db.relationship('Vehicle', backref='incident_vehicle_drivers')
+    driver = db.relationship('Driver', backref='incident_vehicle_drivers')
