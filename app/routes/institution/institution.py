@@ -155,14 +155,13 @@ def get_institution_by_id(institution_id):
     ), 200
 # Akhir Ambil Instansi berdasarkan ID
 
-# Tambah Laporan
+# Tambah Laporan [Sisi Resident]
 @institution_route.route('/<int:institution_id>/incidents', methods=['POST'])
 @auth.login_required
 def add_incident(institution_id):
     # Ambil user berdasarkan data login
     user_id = get_jwt_identity()
     resident_id = Resident.query.filter_by(user_id = user_id).with_entities(Resident.id).scalar()
-    print(resident_id)
 
      # Simpan data incident ke database
     try:
