@@ -14,6 +14,7 @@ class CreateVehicleSchema(Schema):
     )
     description = fields.String(
         required=True,
+        validate=[validate.Length(min=50, error="Deskripsi minimal harus 50 karakter.")],
         error_messages={
             "required": "Deskripsi kendaraan wajib diisi.",
             "null": "Deskripsi kendaraan tidak boleh kosong."
