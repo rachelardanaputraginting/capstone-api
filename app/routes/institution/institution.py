@@ -1,7 +1,12 @@
+from flask_jwt_extended import get_jwt_identity
 from app.extensions import db
+from marshmallow import ValidationError
 from flask import Blueprint, request, jsonify
 from utils import auth
-from app.models.models import Institution, User, Vehicle, Driver
+from utils.datetime import get_current_time_in_timezone
+from app.models.models import Institution, User, Vehicle, Driver, Incident, Resident
+ 
+from app.schemas.incident.create_schema import CreateIncidentSchema
 
 institution_route = Blueprint('institutions', __name__)
 
@@ -150,7 +155,72 @@ def get_institution_by_id(institution_id):
     ), 200
 # Akhir Ambil Instansi berdasarkan ID
 
-# Create 
-def add_institution():
-    return "Halo"
-#End Create
+# Tambah Laporan
+@institution_route.route('/<int:institution_id>/incidents', methods=['POST'])
+@auth.login_required
+def add_incident(institution_id):
+    # Ambil user berdasarkan data login
+    user_id = get_jwt_identity()
+    resident_id = Resident.query.filter_by(user_id = user_id).with_entities(Resident.id).scalar()
+    print(resident_id)
+
+     # Simpan data incident ke database
+    try:
+        schema = CreateIncidentSchema(db_session=db.session)
+
+        # Validasi permintaan data
+        try:
+            data = schema.load(request.json)
+        except ValidationError as err:
+            return jsonify({
+                'status': False,
+                'message': 'Validasi data gagal',
+                'errors': err.messages
+            }), 400
+        
+        new_incident = Incident(
+            institution_id=institution_id,
+            resident_id=resident_id,
+            description=data['description'],
+            latitude=data['latitude'],
+            longitude=data['longitude'],
+            picture=data['picture'],
+            reported_at=get_current_time_in_timezone('Asia/Jakarta')  # WIB
+        )
+        db.session.add(new_incident)
+
+        # Simpan semua perubahan ke database
+        db.session.commit()
+
+        return jsonify({
+            'status': True,
+            'message': 'Laporan berhasil dibuat',
+            'data': {
+                'id': new_incident.id,
+                'institution_id': new_incident.institution_id,
+                'resident_id': new_incident.resident_id,
+                'description': new_incident.description,
+                'latitude': new_incident.latitude,
+                'longitude': new_incident.longitude,
+                'picture': new_incident.picture,
+            }
+        }), 201
+
+    except Exception as e:
+        # Rollback untuk semua jenis kesalahan
+        db.session.rollback()
+        
+        # Tangani ValidationError secara spesifik
+        if isinstance(e, ValidationError):
+            return jsonify({
+                'status': False,
+                'message': 'Kesalahan validasi',
+                'errors': e.messages
+            }), 400
+        
+        # Tangani kesalahan umum
+        return jsonify(
+            status=False,
+            message= f'Terjadi kesalahan: {str(e)}'
+        ), 500
+# Akhir Tambah Laporan
