@@ -161,7 +161,6 @@ class IncidentVehicleDriver(db.Model):
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     incident_id = db.Column(db.BigInteger, db.ForeignKey('incidents.id'), nullable=False)
     vehicle_id = db.Column(db.BigInteger, db.ForeignKey('vehicles.id'), nullable=False)
-    driver_id = db.Column(db.BigInteger, db.ForeignKey('drivers.id'), nullable=False)
     status = db.Column(db.Enum(IncidentVehicleDriverStatus), nullable=False)
     assigned_at = db.Column(db.TIMESTAMP)
     completed_at = db.Column(db.TIMESTAMP)
@@ -169,4 +168,3 @@ class IncidentVehicleDriver(db.Model):
     # Relationships
     incident = db.relationship('Incident', backref='incident_vehicle_drivers')
     vehicle = db.relationship('Vehicle', backref='incident_vehicle_drivers')
-    driver = db.relationship('Driver', backref='incident_vehicle_drivers')
