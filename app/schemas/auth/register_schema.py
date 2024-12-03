@@ -72,7 +72,7 @@ class ResidentRegistrationSchema(Schema):
     gender = fields.String(
         required=True,
         validate=validate.OneOf(
-            ['MAN', 'WOMEN'], 
+            ['FEMALE', 'FEMALE'], 
             error="Jenis kelamin hanya boleh 'Pria' atau 'Wanita'."),
         error_messages={"required": "Jenis kelamin wajib diisi."}
     )
@@ -170,7 +170,7 @@ class InstitutionRegistrationSchema(Schema):
     description = fields.String(
         required=True,
         validate=[
-            validate.Length(min=50, max=200, error="Deskripsi harus antara 50 hingga 200 karakter.")
+            validate.Length(min=50, max=400, error="Deskripsi harus antara 50 hingga 200 karakter.")
         ],
         error_messages={"required": "Deskripsi wajib diisi."}
     )
