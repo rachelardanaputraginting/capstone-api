@@ -1,8 +1,9 @@
+from flask_jwt_extended import get_jwt_identity
 from app.extensions import db
 from flask import Blueprint, request, jsonify
 
 from utils import auth
-from app.models.models import Incident, IncidentStatus
+from app.models.models import Incident, IncidentStatus, Resident
 
 incident_resident_route = Blueprint('incidents/residents', __name__)
 
@@ -10,6 +11,10 @@ incident_resident_route = Blueprint('incidents/residents', __name__)
 @incident_resident_route.route('/', methods=['GET'])
 @auth.login_required
 def get_incident_resident():
+    # Ambil user berdasarkan data login
+    user_id = get_jwt_identity()
+    resident_id = Resident.query.filter_by(user_id = user_id).with_entities(Resident.id).scalar()
+    
     # Ambil parameter query status (ditolak, dilaporkan, ditangani, selesai)
     status = request.args.get('status', None)
     
@@ -22,6 +27,8 @@ def get_incident_resident():
         Incident.status,
     ).filter(
         Incident.status == status
+    ).filter_by(
+        resident_id = resident_id
     ).all()  # Gunakan alias di sini
 
     # Siapkan datanya
