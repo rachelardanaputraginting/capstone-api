@@ -13,7 +13,7 @@ incident_institution_route = Blueprint('incidents/institutions', __name__)
 # Ambil Data
 @incident_institution_route.route('/', methods=['GET'])
 @auth.login_required
-def get_incident_resident():
+def get_incident_institution():
     # Ambil user berdasarkan data login
     user_id = get_jwt_identity()
     institution_id = Institution.query.filter_by(user_id = user_id).with_entities(Institution.id).scalar()
@@ -56,7 +56,7 @@ def get_incident_resident():
 # Ambil Data ditolak berdasarkan ID
 @incident_institution_route.route('/<int:incident_id>', methods=['GET'])
 @auth.login_required
-def get_incident_resident_by_id(incident_id):
+def get_incident_institution_by_id(incident_id):
     # Ambil parameter query status (ditolak, dilaporkan, ditangani, selesai)
     status = request.args.get('status', None)
     
@@ -205,7 +205,7 @@ def get_incident_resident_by_id(incident_id):
 @auth.login_required
 def handle_incident(incident_id):
     try:
-         # Buat skema dengan data kendaraan saat ini
+        # Buat skema dengan data kendaraan saat ini
         schema = HandleIncidentSchema(db_session=db.session, incident_id=incident_id)
 
         # Validasi permintaan data
@@ -217,8 +217,8 @@ def handle_incident(incident_id):
                 'message': 'Validasi data gagal',
                 'errors': err.messages
             }), 400
-            
-         # Get incident 
+
+        # Get incident 
         incident = Incident.query.filter_by(id=incident_id).first()
         if not incident:
             return jsonify({
@@ -226,40 +226,38 @@ def handle_incident(incident_id):
                 'message': 'Laporan tidak ditemukan.'
             }), 404
             
-        # Begin transaction
         db.session.begin_nested()
+
+        # Perbarui status incident
+        incident.status = IncidentStatus.HANDLED 
+        incident.handled_at = get_current_time_in_timezone('Asia/Jakarta')
         
-        # Perbarui data status kejadian menjadi ditangani
-        incident.status=IncidentStatus.HANDLED 
-        incident.handled_at=get_current_time_in_timezone('Asia/Jakarta')
-        
-        # Proses setiap kendaraan yang dikirimkan dalam data
-        for vehicle_data in data['vehicles']:  # data['vehicles'] berisi daftar kendaraan
+        # Tambahkan kendaraan ke incident
+        for vehicle_data in data['vehicles']:
             new_incident_vehicle = IncidentVehicleDriver(
                 incident_id=incident.id,
                 vehicle_id=vehicle_data['vehicle_id'],
                 status=IncidentVehicleDriverStatus.ON_ROUTE,
-                assigned_at=get_current_time_in_timezone('Asia/Jakarta')  # WIB
+                assigned_at=get_current_time_in_timezone('Asia/Jakarta')
             )
-        db.session.add(new_incident_vehicle)  
+            db.session.add(new_incident_vehicle)
 
-        # Lakukan perubahan
         db.session.commit()
 
         return jsonify({
             'status': True,
-            'message': 'Laporan kejadian berhasil ditangani',
+            'message': 'Laporan insiden berhasil ditangani',
             'data': {
                 'incident': {
                     'id': incident.id,
                     'status': incident.status,
-                    'assigned_at': incident.reported_at
+                    'handled_at': incident.handled_at
                 },
-                'vehicles': [  # Daftar kendaraan yang terlibat
+                'vehicles': [
                     {
                         'vehicle_id': vehicle_data['vehicle_id'],
-                        'status': vehicle_data['status'],
-                        'assigned_at': get_current_time_in_timezone('Asia/Jakarta')
+                        'status': 'ON_ROUTE',
+                        'assigned_at': new_incident_vehicle.assigned_at
                     }
                     for vehicle_data in data['vehicles']
                 ]
@@ -267,20 +265,9 @@ def handle_incident(incident_id):
         }), 200
 
     except Exception as e:
-        # Rollback untuk semua jenis kesalahan
         db.session.rollback()
-        
-        # Tangani ValidationError secara spesifik
-        if isinstance(e, ValidationError):
-            return jsonify({
-                'status': False,
-                'message': 'Kesalahan validasi',
-                'errors': e.messages
-            }), 400
-        
-        # Tangani kesalahan umum
-        return jsonify(
-            status=False,
-            message= f'Terjadi kesalahan: {str(e)}'
-        ), 500
+        return jsonify({
+            'status': False,
+            'message': f'Terjadi kesalahan: {str(e)}'
+        }), 500
 # Akhir Laporan Kejadian

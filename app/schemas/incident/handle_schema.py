@@ -43,7 +43,6 @@ class HandleIncidentSchema(Schema):
         # Validasi kendaraan dan driver untuk setiap kendaraan
         for vehicle in vehicles:
             vehicle_id = vehicle.get("vehicle_id")
-            driver_id = vehicle.get("driver_id")
             
             # Validasi kendaraan berdasarkan vehicle_id
             existing_vehicle = self.db_session.query(Vehicle).get(vehicle_id)
