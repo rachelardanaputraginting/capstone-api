@@ -230,7 +230,7 @@ def handle_incident(incident_id):
 
         # Perbarui status incident
         incident.status = IncidentStatus.HANDLED 
-        incident.handled_at = get_current_time_in_timezone('Asia/Jakarta')
+        incident.handle_at = get_current_time_in_timezone('Asia/Jakarta')
         
         # Tambahkan kendaraan ke incident
         for vehicle_data in data['vehicles']:
@@ -251,7 +251,7 @@ def handle_incident(incident_id):
                 'incident': {
                     'id': incident.id,
                     'status': incident.status,
-                    'handled_at': incident.handled_at
+                    'handle_at': incident.handle_at
                 },
                 'vehicles': [
                     {
