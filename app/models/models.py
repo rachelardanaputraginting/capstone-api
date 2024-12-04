@@ -11,7 +11,7 @@ class IncidentStatus(str, Enum):
     COMPLETED = 'completed'
     REJECTED = 'rejected'
     
-class IncidentVehicleDriverStatus(str, Enum):
+class IncidentVehicleStatus(str, Enum):
     ON_ROUTE = "on-route"
     ARRIVED = "arrived"
     COMPLETED = "completed"
@@ -156,12 +156,12 @@ class Incident(db.Model):
     resident = db.relationship('Resident', backref='incidents')
     institution = db.relationship('Institution', backref='incidents')
 
-class IncidentVehicleDriver(db.Model):
+class IncidentVehicle(db.Model):
     __tablename__ = 'incident_vehicle_drivers'
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     incident_id = db.Column(db.BigInteger, db.ForeignKey('incidents.id'), nullable=False)
     vehicle_id = db.Column(db.BigInteger, db.ForeignKey('vehicles.id'), nullable=False)
-    status = db.Column(db.Enum(IncidentVehicleDriverStatus), nullable=False)
+    status = db.Column(db.Enum(IncidentVehicleStatus), nullable=False)
     assigned_at = db.Column(db.TIMESTAMP)
     completed_at = db.Column(db.TIMESTAMP)
 
