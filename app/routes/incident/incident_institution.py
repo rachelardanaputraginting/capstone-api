@@ -6,7 +6,7 @@ from utils.datetime import get_current_time_in_timezone
 from utils import auth
 from app.models.models import Incident, IncidentStatus, Institution, IncidentVehicleDriver, IncidentVehicleDriverStatus
 
-from app.schemas.incident.handle_schema import HandleIncidentSchema, CompleteIncidentSchema
+from app.schemas.incident.handle_schema import HandleIncidentSchema
 
 incident_institution_route = Blueprint('incidents/institutions', __name__)
 
