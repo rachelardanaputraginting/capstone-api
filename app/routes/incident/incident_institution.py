@@ -48,7 +48,7 @@ def get_incident_institution():
 
     return jsonify(
         status=True,
-        message='Laporan Kejadian Darurat berhasil dimuat.',
+        message='Insiden berhasil dimuat.',
         data=incident_data
     ), 200
 # Akhir Ambil Data
@@ -69,7 +69,7 @@ def get_incident_institution_by_id(incident_id):
     if not incident:
         return jsonify(
             status=False,
-            message='Laporan tidak ditemukan.',
+            message='Insiden tidak ditemukan.',
         ), 404
 
     # Menyiapkan data untuk respons
@@ -190,7 +190,7 @@ def get_incident_institution_by_id(incident_id):
             }
         }
     else:
-        return jsonify(status=False, message='Status Laporan tidak valid'), 400
+        return jsonify(status=False, message='Status Insiden tidak valid'), 400
         
     # Mengembalikan respons
     return jsonify(
@@ -200,7 +200,7 @@ def get_incident_institution_by_id(incident_id):
     ), 200
 # Akhir Ambil Data berdasarkan ID
 
-# Tangani Laporan Insiden
+# Tangani Insiden
 @incident_institution_route.route('/<int:incident_id>/handle', methods=['PUT'])
 @auth.login_required
 def handle_incident(incident_id):
@@ -223,7 +223,7 @@ def handle_incident(incident_id):
         if not incident:
             return jsonify({
                 'status': False,
-                'message': 'Laporan tidak ditemukan.'
+                'message': 'Insiden tidak ditemukan.'
             }), 404
             
         db.session.begin_nested()
@@ -246,7 +246,7 @@ def handle_incident(incident_id):
 
         return jsonify({
             'status': True,
-            'message': 'Laporan insiden berhasil ditangani',
+            'message': 'Insiden berhasil ditangani',
             'data': {
                 'incident': {
                     'id': incident.id,
@@ -270,9 +270,9 @@ def handle_incident(incident_id):
             'status': False,
             'message': f'Terjadi kesalahan: {str(e)}'
         }), 500
-# Akhir Tangani Laporan Insiden
+# Akhir Tangani Insiden
 
-# Selesai Laporan Insiden
+# Selesai Insiden
 @incident_institution_route.route('/<int:incident_id>/complete', methods=['PUT'])
 @auth.login_required
 def complete_incident(incident_id):
@@ -282,7 +282,7 @@ def complete_incident(incident_id):
         if not incident:
             return jsonify({
                 'status': False,
-                'message': 'Laporan tidak ditemukan.'
+                'message': 'Insiden tidak ditemukan.'
             }), 404
         
         # Ambil semua kendaraan yang terkait dengan incident dan pastikan semua sudah selesai
@@ -291,7 +291,7 @@ def complete_incident(incident_id):
             if ivd.status != 'COMPLETED':
                 return jsonify({
                     'status': False,
-                    'message': 'Kendaraan ada yang belum kembali, atau Laporan Insiden belum selesai ditangani.'
+                    'message': 'Kendaraan ada yang belum kembali, atau Insiden belum selesai ditangani.'
                 }), 400  # Gunakan 400 karena ini adalah kesalahan validasi
 
         # Perbarui status incident
@@ -302,7 +302,7 @@ def complete_incident(incident_id):
 
         return jsonify({
             'status': True,
-            'message': 'Laporan insiden berhasil ditangani',
+            'message': 'Insiden berhasil ditangani',
             'data': {
                 'incident': {
                     'id': incident.id,
@@ -318,4 +318,4 @@ def complete_incident(incident_id):
             'status': False,
             'message': f'Terjadi kesalahan: {str(e)}'
         }), 500
-# Akhir Selesai Laporan Insiden
+# Akhir Selesai Insiden
