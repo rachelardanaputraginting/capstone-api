@@ -6,7 +6,7 @@ from utils.datetime import get_current_time_in_timezone
 from utils import auth
 from app.models.models import Incident, IncidentStatus, Institution, IncidentVehicleDriver, IncidentVehicleDriverStatus
 
-from app.schemas.incident.handle_schema import HandleIncidentSchema
+from app.schemas.incident.handle_schema import HandleIncidentSchema, CompleteIncidentSchema
 
 incident_institution_route = Blueprint('incidents/institutions', __name__)
 
@@ -200,7 +200,7 @@ def get_incident_institution_by_id(incident_id):
     ), 200
 # Akhir Ambil Data berdasarkan ID
 
-# Tangani Laporan Kejadian
+# Tangani Laporan Insiden
 @incident_institution_route.route('/<int:incident_id>/handle', methods=['PUT'])
 @auth.login_required
 def handle_incident(incident_id):
@@ -270,4 +270,52 @@ def handle_incident(incident_id):
             'status': False,
             'message': f'Terjadi kesalahan: {str(e)}'
         }), 500
-# Akhir Laporan Kejadian
+# Akhir Tangani Laporan Insiden
+
+# Selesai Laporan Insiden
+@incident_institution_route.route('/<int:incident_id>/complete', methods=['PUT'])
+@auth.login_required
+def complete_incident(incident_id):
+    try:
+        # Get incident 
+        incident = Incident.query.filter_by(id=incident_id).first()
+        if not incident:
+            return jsonify({
+                'status': False,
+                'message': 'Laporan tidak ditemukan.'
+            }), 404
+        
+        # Ambil semua kendaraan yang terkait dengan incident dan pastikan semua sudah selesai
+        incident_vehicles = IncidentVehicleDriver.query.filter_by(incident_id=incident_id).all()
+        for ivd in incident_vehicles:
+            if ivd.status != 'COMPLETED':
+                return jsonify({
+                    'status': False,
+                    'message': 'Kendaraan ada yang belum kembali, atau Laporan Insiden belum selesai ditangani.'
+                }), 400  # Gunakan 400 karena ini adalah kesalahan validasi
+
+        # Perbarui status incident
+        incident.status = IncidentStatus.COMPLETED 
+        incident.completed_at = get_current_time_in_timezone('Asia/Jakarta')
+
+        db.session.commit()
+
+        return jsonify({
+            'status': True,
+            'message': 'Laporan insiden berhasil ditangani',
+            'data': {
+                'incident': {
+                    'id': incident.id,
+                    'status': incident.status,
+                    'completed_at': incident.completed_at
+                }
+            }
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'status': False,
+            'message': f'Terjadi kesalahan: {str(e)}'
+        }), 500
+# Akhir Selesai Laporan Insiden

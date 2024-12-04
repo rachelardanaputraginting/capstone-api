@@ -48,4 +48,3 @@ class HandleIncidentSchema(Schema):
             existing_vehicle = self.db_session.query(Vehicle).get(vehicle_id)
             if not existing_vehicle:
                 raise ValidationError(f"Kendaraan dengan ID {vehicle_id} tidak ditemukan.")
-            
