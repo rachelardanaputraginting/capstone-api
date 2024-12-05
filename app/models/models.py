@@ -157,14 +157,15 @@ class Incident(db.Model):
     institution = db.relationship('Institution', backref='incidents')
 
 class IncidentVehicle(db.Model):
-    __tablename__ = 'incident_vehicle_drivers'
+    __tablename__ = 'incident_vehicles'
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     incident_id = db.Column(db.BigInteger, db.ForeignKey('incidents.id'), nullable=False)
     vehicle_id = db.Column(db.BigInteger, db.ForeignKey('vehicles.id'), nullable=False)
     status = db.Column(db.Enum(IncidentVehicleStatus), nullable=False)
     assigned_at = db.Column(db.TIMESTAMP)
+    arrived_at = db.Column(db.TIMESTAMP)
     completed_at = db.Column(db.TIMESTAMP)
 
     # Relationships
-    incident = db.relationship('Incident', backref='incident_vehicle_drivers')
-    vehicle = db.relationship('Vehicle', backref='incident_vehicle_drivers')
+    incident = db.relationship('Incident', backref='incident_vehicles')
+    vehicle = db.relationship('Vehicle', backref='incident_vehicles')

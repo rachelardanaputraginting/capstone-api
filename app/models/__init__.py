@@ -9,7 +9,7 @@ from .models import (
     Role, User, UserRole, Resident, 
     Administration, Institution, 
     Driver, Vehicle, Incident, 
-    IncidentVehicleDriver
+    IncidentVehicle
 )
 
 from .reset_password import ResetPassword
