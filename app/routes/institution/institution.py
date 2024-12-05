@@ -3,6 +3,7 @@ from app.extensions import db
 from marshmallow import ValidationError
 from flask import Blueprint, request, jsonify
 from utils import auth
+from utils import URL
 from utils.datetime import get_current_time_in_timezone
 from app.models.models import Institution, User, Vehicle, Driver, Incident, Resident
  
@@ -177,13 +178,17 @@ def add_incident(institution_id):
                 'errors': err.messages
             }), 400
         
+        picture = URL.StorageURL("default.jpg")
+        if data['picture'] is not None :
+            picture = URL.StorageURL('uploads/'+data['picture'])
+        
         new_incident = Incident(
             institution_id=institution_id,
             resident_id=resident_id,
             description=data['description'],
             latitude=data['latitude'],
             longitude=data['longitude'],
-            picture=data['picture'],
+            picture=picture,
             reported_at=get_current_time_in_timezone('Asia/Jakarta')  # WIB
         )
         db.session.add(new_incident)
