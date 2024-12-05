@@ -10,7 +10,7 @@ from app.schemas.incident.create_schema import CreateIncidentSchema
 
 institution_route = Blueprint('institutions', __name__)
 
-# Get All
+# Tampilkan semua Insiden
 @institution_route.route('/', methods=['GET'])
 @auth.login_required
 def get_all_institutions():
@@ -66,9 +66,9 @@ def get_all_institutions():
         message='Data loaded successfully.',
         data=institution_data
     ), 200
-# End Get All 
+# Akhir Tampilkan semua Insiden
 
-# Ambil Instansi berdasarkan ID
+# Tampilkan Instansi berdasarkan ID
 @institution_route.route('/<int:institution_id>', methods=['GET'])
 @auth.login_required
 def get_institution_by_id(institution_id):
@@ -153,7 +153,7 @@ def get_institution_by_id(institution_id):
         message='Rincian Instansi berhasil dimuat.',
         data=institution_data
     ), 200
-# Akhir Ambil Instansi berdasarkan ID
+# Akhir Tampilkan Instansi berdasarkan ID
 
 # Tambah Laporan [Sisi Resident]
 @institution_route.route('/<int:institution_id>/incidents', methods=['POST'])
