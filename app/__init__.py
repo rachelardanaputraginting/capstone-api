@@ -10,6 +10,7 @@ from app.routes.institution.vehicle import vehicle_route
 from app.routes.institution.institution import institution_route
 from app.routes.incident.incident_resident import incident_resident_route
 from app.routes.incident.incident_institution import incident_institution_route
+from app.routes.incident.incident_vehicle import incident_vehicle_route
 
 from app.extensions import db, migrate, jwt, mail
 from flask_seeder import FlaskSeeder
@@ -48,6 +49,7 @@ with app.app_context():
     app.register_blueprint(vehicle_route, url_prefix='/institutions/vehicles')
     app.register_blueprint(incident_resident_route, url_prefix='/incidents/residents')
     app.register_blueprint(incident_institution_route, url_prefix='/incidents/institutions')
+    app.register_blueprint(incident_vehicle_route, url_prefix='/incidents/vehicles')
     
     # with app.app_context():
 
