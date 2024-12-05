@@ -7,13 +7,6 @@ class HandleIncidentSchema(Schema):
     class Meta:
         unknown = EXCLUDE  # Abaikan field yang tidak dikenal
 
-    incident_id = fields.Integer(
-        required=True,
-        error_messages={
-            "null": "ID insiden tidak boleh kosong.",
-            "invalid": "ID insiden harus berupa angka."
-        }
-    )
     vehicles = fields.List(fields.Dict(
         fields={
             "vehicle_id": fields.Integer(required=True),
@@ -28,15 +21,7 @@ class HandleIncidentSchema(Schema):
         # Ambil insiden berdasarkan incident_id
         self.current_incident = self.db_session.query(Incident).get(incident_id)
         if not self.current_incident:
-            raise ValidationError({'incident_id': 'Laporan insiden tidak ditemukan'})
-
-    @validates('incident_id')
-    def validate_incident_id(self, value):
-        # Validasi ID insiden jika diberikan
-        if value is not None:  # Hanya validasi jika nilai diberikan
-            incident = self.db_session.query(Incident).get(value)
-            if not incident:
-                raise ValidationError("Insiden dengan ID yang diberikan tidak ditemukan.")
+            raise ValidationError('Laporan insiden tidak ditemukan')
 
     @validates('vehicles')
     def validate_vehicles(self, vehicles):
