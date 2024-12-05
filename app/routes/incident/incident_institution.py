@@ -4,7 +4,7 @@ from marshmallow import ValidationError
 from flask import Blueprint, request, jsonify
 from utils.datetime import get_current_time_in_timezone
 from utils import auth
-from app.models.models import Incident, IncidentStatus, Institution, IncidentVehicleDriver, IncidentVehicleDriverStatus
+from app.models.models import Incident, IncidentStatus, Institution, IncidentVehicle, IncidentVehicleStatus, Vehicle
 
 from app.schemas.incident.handle_schema import HandleIncidentSchema
 
@@ -231,16 +231,38 @@ def handle_incident(incident_id):
         # Perbarui status incident
         incident.status = IncidentStatus.HANDLED 
         incident.handle_at = get_current_time_in_timezone('Asia/Jakarta')
-        
-        # Tambahkan kendaraan ke incident
-        for vehicle_data in data['vehicles']:
-            new_incident_vehicle = IncidentVehicleDriver(
+
+        incident_vehicles_list = []  # Menyimpan kendaraan untuk respon
+
+        # Proses kendaraan yang terpilih
+        for incident_vehicle_data in data['vehicles']:
+            vehicle = Vehicle.query.filter_by(id=incident_vehicle_data['vehicle_id']).first()
+            
+            if not vehicle:
+                return jsonify({
+                    'status': False,
+                    'message': f"Kendaraan dengan ID {incident_vehicle_data['vehicle_id']} tidak ditemukan."
+                }), 404
+            
+            # Ubah status kendaraan menjadi tidak siap (false)
+            vehicle.is_ready = False
+
+            new_incident_vehicle = IncidentVehicle(
                 incident_id=incident.id,
-                vehicle_id=vehicle_data['vehicle_id'],
-                status=IncidentVehicleDriverStatus.ON_ROUTE,
+                vehicle_id=vehicle.id,
+                status=IncidentVehicleStatus.ON_ROUTE,
                 assigned_at=get_current_time_in_timezone('Asia/Jakarta')
             )
+
+            # Tambahkan kendaraan baru ke tabel incident_vehicles
             db.session.add(new_incident_vehicle)
+            db.session.add(vehicle)
+
+            incident_vehicles_list.append({
+                'vehicle_id': vehicle.id,
+                'status': 'ON_ROUTE',
+                'assigned_at': new_incident_vehicle.assigned_at
+            })
 
         db.session.commit()
 
@@ -256,11 +278,11 @@ def handle_incident(incident_id):
                 'vehicles': [
                     {
                         'vehicle_id': vehicle_data['vehicle_id'],
-                        'status': 'ON_ROUTE',
-                        'assigned_at': new_incident_vehicle.assigned_at
+                        'is_ready': False  # Menunjukkan kendaraan sedang tidak siap
                     }
                     for vehicle_data in data['vehicles']
-                ]
+                ],
+                'incident_vehicles': incident_vehicles_list,
             }
         }), 200
 
@@ -286,9 +308,9 @@ def complete_incident(incident_id):
             }), 404
         
         # Ambil semua kendaraan yang terkait dengan incident dan pastikan semua sudah selesai
-        incident_vehicles = IncidentVehicleDriver.query.filter_by(incident_id=incident_id).all()
+        incident_vehicles = IncidentVehicle.query.filter_by(incident_id=incident_id).all()
         for ivd in incident_vehicles:
-            if ivd.status != 'COMPLETED':
+            if ivd.status != IncidentStatus.COMPLETED:
                 return jsonify({
                     'status': False,
                     'message': 'Kendaraan ada yang belum kembali, atau Insiden belum selesai ditangani.'
@@ -298,17 +320,29 @@ def complete_incident(incident_id):
         incident.status = IncidentStatus.COMPLETED 
         incident.completed_at = get_current_time_in_timezone('Asia/Jakarta')
 
+         # Perbarui status kendaraan yang terlibat dalam insiden menjadi "AVAILABLE"
+        for ivd in incident_vehicles:
+            ivd.vehicle.is_ready = True  # Status kendaraan kembali ke "available" atau "ready"
+
         db.session.commit()
 
         return jsonify({
             'status': True,
-            'message': 'Insiden berhasil ditangani',
+            'message': 'Insiden selesai ditangani',
             'data': {
                 'incident': {
                     'id': incident.id,
                     'status': incident.status,
                     'completed_at': incident.completed_at
-                }
+                },
+                'vehicles': [
+                    {
+                        'id': ivd.vehicle.id,
+                        'name': ivd.vehicle.name,
+                        'is_ready': ivd.vehicle.is_ready  # Status kendaraan
+                    }
+                    for ivd in incident_vehicles
+                ]
             }
         }), 200
 
