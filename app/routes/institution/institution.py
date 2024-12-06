@@ -5,6 +5,7 @@ from flask import Blueprint, request, jsonify
 from utils import auth
 from utils import URL
 from utils.datetime import get_current_time_in_timezone
+from utils.storage import upload_file_to_gcs, allowed_file
 from app.models.models import Institution, User, Vehicle, Driver, Incident, Resident
  
 from app.schemas.incident.create_schema import CreateIncidentSchema
@@ -156,44 +157,74 @@ def get_institution_by_id(institution_id):
     ), 200
 # Akhir Tampilkan Instansi berdasarkan ID
 
-# Tambah Laporan [Sisi Resident]
 @institution_route.route('/<int:institution_id>/incidents', methods=['POST'])
 @auth.login_required
 def add_incident(institution_id):
-    # Ambil user berdasarkan data login
-    user_id = get_jwt_identity()
-    resident_id = Resident.query.filter_by(user_id = user_id).with_entities(Resident.id).scalar()
-
-     # Simpan data incident ke database
     try:
-        schema = CreateIncidentSchema(db_session=db.session)
-
-        # Validasi permintaan data
-        try:
-            data = schema.load(request.json)
-        except ValidationError as err:
+        # Ambil user berdasarkan data login
+        user_id = get_jwt_identity()
+        resident = Resident.query.filter_by(user_id=user_id).first()
+        
+        if not resident:
             return jsonify({
                 'status': False,
-                'message': 'Validasi data gagal',
-                'errors': err.messages
+                'message': 'Masyarakat tidak ditemukan'
+            }), 404
+
+        # Handle file upload terlebih dahulu
+        if 'picture' not in request.files:
+            return jsonify({
+                'status': False,
+                'message': 'Gambar wajib diunggah'
             }), 400
-        
-        picture = URL.StorageURL("default.jpg")
-        if data['picture'] is not None :
-            picture = URL.StorageURL('uploads/'+data['picture'])
-        
+
+        file = request.files['picture']
+        if file.filename == '':
+            return jsonify({
+                'status': False,
+                'message': 'Tidak ada file yang dipilih'
+            }), 400
+
+        # Validate file type
+        if not allowed_file(file.filename):
+            return jsonify({
+                'status': False,
+                'message': 'Format file tidak didukung. Gunakan jpg, jpeg atau png.'
+            }), 400
+
+        # Prepare data for schema validation
+        data = {
+            'description': request.form.get('description'),
+            'institution_id': institution_id,
+            'resident_id': resident.id,
+            'latitude': request.form.get('latitude'),
+            'longitude': request.form.get('longitude')
+        }
+
+        # Validate data using schema
+        schema = CreateIncidentSchema(db_session=db.session)
+        validated_data = schema.load(data)
+
+        # Upload file to GCS
+        upload_result = upload_file_to_gcs(file, directory='incidents')
+        if not upload_result['status']:
+            return jsonify({
+                'status': False,
+                'message': 'Gagal mengunggah gambar'
+            }), 500
+
+        # Create new incident
         new_incident = Incident(
             institution_id=institution_id,
-            resident_id=resident_id,
-            description=data['description'],
-            latitude=data['latitude'],
-            longitude=data['longitude'],
-            picture=picture,
-            reported_at=get_current_time_in_timezone('Asia/Jakarta')  # WIB
+            resident_id=resident.id,
+            description=validated_data['description'],
+            latitude=validated_data['latitude'],
+            longitude=validated_data['longitude'],
+            picture=upload_result['url'],
+            reported_at=get_current_time_in_timezone('Asia/Jakarta')
         )
-        db.session.add(new_incident)
 
-        # Simpan semua perubahan ke database
+        db.session.add(new_incident)
         db.session.commit()
 
         return jsonify({
@@ -204,27 +235,22 @@ def add_incident(institution_id):
                 'institution_id': new_incident.institution_id,
                 'resident_id': new_incident.resident_id,
                 'description': new_incident.description,
-                'latitude': new_incident.latitude,
-                'longitude': new_incident.longitude,
+                'latitude': str(new_incident.latitude),
+                'longitude': str(new_incident.longitude),
                 'picture': new_incident.picture,
+                'reported_at': new_incident.reported_at.isoformat()
             }
         }), 201
 
+    except ValidationError as err:
+        return jsonify({
+            'status': False,
+            'message': 'Validasi gagal',
+            'errors': err.messages
+        }), 400
     except Exception as e:
-        # Rollback untuk semua jenis kesalahan
         db.session.rollback()
-        
-        # Tangani ValidationError secara spesifik
-        if isinstance(e, ValidationError):
-            return jsonify({
-                'status': False,
-                'message': 'Kesalahan validasi',
-                'errors': e.messages
-            }), 400
-        
-        # Tangani kesalahan umum
-        return jsonify(
-            status=False,
-            message= f'Terjadi kesalahan: {str(e)}'
-        ), 500
-# Akhir Tambah Laporan
+        return jsonify({
+            'status': False,
+            'message': f'Terjadi kesalahan: {str(e)}'
+        }), 500
