@@ -43,8 +43,7 @@ class CreateVehicleSchema(Schema):
         }
     )
     picture = fields.String(
-        required=False, 
-        validate=[validate.Length(max=255, error="Panjang gambar tidak boleh melebihi 255 karakter.")],
+        required=False,
         error_messages={
             "null": "Gambar tidak boleh kosong."
         }

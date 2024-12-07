@@ -3,7 +3,9 @@ from marshmallow import ValidationError
 from flask import Blueprint, request, jsonify
 
 from utils import auth
+from utils.URL import StorageURL
 from app.models.models import Vehicle, User, Vehicle, Driver
+from utils.Storage import storage_manager
 
 # schemas
 from app.schemas.vehicle.create_schema import CreateVehicleSchema
@@ -45,7 +47,7 @@ def get_vehicles():
             "name": vehicle.name,
             "description": vehicle.description,
             "is_ready": vehicle.is_ready,
-            "picture": vehicle.picture,
+            "picture": StorageURL(vehicle.picture),
             "driver": {
                 "id": vehicle.driver_id,
                 "name": vehicle.driver_name
@@ -79,11 +81,23 @@ def add_vehicles():
                 'errors': err.messages
             }), 400
         
+        file = request.get_json()
+        image_base64 = file.get('picture')
+        
+        if not image_base64:
+            return jsonify({
+                'status': False,
+                'message': 'No image provided'
+            }), 400
+        
+        # Upload gambar dan dapatkan path
+        file_path = storage_manager.uploadFile(image_base64, dir='vehicles')
+        
         new_vehicles = Vehicle(
             institution_id=data['institution_id'],
             driver_id=data['driver_id'],
             name=data['name'],
-            picture=data['picture'],
+            picture=file_path,
             description=data['description'],
             is_ready=data['is_ready']
         )
