@@ -58,7 +58,7 @@ def get_vehicles():
 
     return jsonify(
         status=True,
-        message='Vehicles loaded successfully.',
+        message='Kendaraan berhasi dimuat.',
         data=vehicle_data
     ), 200
 # Akhir Ambil Data
@@ -87,7 +87,7 @@ def add_vehicles():
         if not image_base64:
             return jsonify({
                 'status': False,
-                'message': 'No image provided'
+                'message': 'Tidak ada gambar yang disediakan'
             }), 400
         
         # Upload gambar dan dapatkan path
