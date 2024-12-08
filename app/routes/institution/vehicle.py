@@ -5,7 +5,7 @@ from flask import Blueprint, request, jsonify
 from utils import auth
 from utils.URL import StorageURL
 from app.models.models import Vehicle, User, Vehicle, Driver
-from utils.Storage import storage_manager
+from utils.storage import storage_manager
 
 # schemas
 from app.schemas.vehicle.create_schema import CreateVehicleSchema
