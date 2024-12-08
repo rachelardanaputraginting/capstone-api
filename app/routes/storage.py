@@ -1,13 +1,13 @@
 import io
 
 from flask import Blueprint, send_file, jsonify
-from utils import Storage
+from utils import storage
 
 storage_route = Blueprint('storage', __name__)
 
 @storage_route.route('/<path:filepath>', methods=['GET'])
 def view(filepath) :
-  blob = Storage.getFile(filepath)
+  blob = storage.getFile(filepath)
   if blob.exists() :
     content_type = blob.content_type
     image_data = blob.download_as_bytes()
