@@ -196,6 +196,7 @@ def add_incident(institution_id):
             description=data['description'],
             latitude=data['latitude'],
             longitude=data['longitude'],
+            label=data['label'],
             picture=file_path,
             reported_at=get_current_time_in_timezone('Asia/Jakarta')  # WIB
         )

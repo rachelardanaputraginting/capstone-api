@@ -4,6 +4,11 @@ from enum import Enum
 class Gender(str, Enum):
     MALE = "male"
     FEMALE = "female"
+    
+class Label(str, Enum):
+    HIGH = "HIGH"
+    MEDIUM = "medium"
+    LOW = "low"
 
 class IncidentStatus(str, Enum):
     REPORTED = 'reported'
@@ -141,7 +146,7 @@ class Incident(db.Model):
     resident_id = db.Column(db.BigInteger, db.ForeignKey('residents.id'), nullable=False)
     institution_id = db.Column(db.BigInteger, db.ForeignKey('institutions.id'), nullable=False)
     description = db.Column(db.Text)
-    label = db.Column(db.Text)
+    label = db.Column(db.Enum(Label), nullable=False)
     status = db.Column(db.Enum(IncidentStatus), nullable=False, default=IncidentStatus.REPORTED)
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)

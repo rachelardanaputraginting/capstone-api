@@ -46,6 +46,13 @@ class CreateIncidentSchema(Schema):
             "invalid": "Format email tidak valid."
         }
     )
+    label = fields.String(
+        required=True,
+        validate=validate.OneOf(
+            ['HIGH', 'MEDIUM', 'LOW'], 
+            error="Label hanya boleh 'High', 'Medium' atau 'Low'."),
+        error_messages={"required": "Label wajib diisi."}
+    )
     picture = fields.String(
         required=False, 
         validate=[validate.Length(max=255, error="Panjang gambar tidak boleh melebihi 255 karakter.")],
