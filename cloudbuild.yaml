@@ -1,59 +1,69 @@
 steps:
   # Step 1: Build the Docker image
-  - name: "gcr.io/cloud-builders/docker"
+  - name: 'gcr.io/cloud-builders/docker'
     args:
       [
-        "build",
-        "-t",
-        "asia-southeast2-docker.pkg.dev/capstone-443613/instahelp/instahelp-api",
-        ".",
+        'build',
+        '-t',
+        '${_ARTIFACT_REGISTRY}/${_SERVICE_NAME}',
+        '.',
       ]
 
   # Step 2: Push the Docker image to Artifact Registry
-  - name: "gcr.io/cloud-builders/docker"
+  - name: 'gcr.io/cloud-builders/docker'
     args:
       [
-        "push",
-        "asia-southeast2-docker.pkg.dev/capstone-443613/instahelp/instahelp-api",
+        'push',
+        '${_ARTIFACT_REGISTRY}/${_SERVICE_NAME}',
       ]
 
   # Step 3: Fetch `credentials.json` from Secret Manager
-  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
-    entrypoint: "bash"
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
     args:
-      - "-c"
+      - '-c'
       - |
         gcloud secrets versions access latest --secret="credentials-json" > credentials.json
 
   # Step 4: Fetch `.env` from Secret Manager
-  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
-    entrypoint: "bash"
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
     args:
-      - "-c"
+      - '-c'
       - |
         gcloud secrets versions access latest --secret="instahelp-env" > .env
 
   # Step 5: Deploy to Cloud Run
-  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     args:
       [
-        "gcloud",
-        "run",
-        "deploy",
-        "instahelp-api",
-        "--image",
-        "asia-southeast2-docker.pkg.dev/capstone-443613/instahelp/instahelp-api",
-        "--region",
-        "asia-southeast2",
-        "--platform",
-        "managed",
-        "--allow-unauthenticated",
-        "--set-env-vars",
-        "FLASK_ENV=production,APP_HOST=0.0.0.0,APP_DEBUG=False",
+        'gcloud',
+        'run',
+        'deploy',
+        '${_SERVICE_NAME}',
+        '--image',
+        '${_ARTIFACT_REGISTRY}/${_SERVICE_NAME}',
+        '--region',
+        '${_REGION}',
+        '--platform',
+        'managed',
+        '--allow-unauthenticated',
+        '--set-env-vars',
+        'FLASK_ENV=production,APP_HOST=0.0.0.0,APP_DEBUG=False',
       ]
     env:
-      - "GOOGLE_APPLICATION_CREDENTIALS=/workspace/credentials.json"
+      - 'GOOGLE_APPLICATION_CREDENTIALS=/workspace/credentials.json'
+
+# Substitution variables
+substitutions:
+  _REGION: asia-southeast2
+  _SERVICE_NAME: instahelp-api
+  _ARTIFACT_REGISTRY: asia-southeast2-docker.pkg.dev/capstone-443613/instahelp
+
+# Logging options
+options:
+  logging: CLOUD_LOGGING_ONLY
 
 # Specify the Docker image for Artifact Registry
 images:
-  - "asia-southeast2-docker.pkg.dev/capstone-443613/instahelp/instahelp-api"
+  - '${_ARTIFACT_REGISTRY}/${_SERVICE_NAME}'
