@@ -1,19 +1,28 @@
 # Base image
 FROM python:3.12-alpine
 
+# Install system dependencies
+RUN apk add --no-cache \
+    gcc \
+    musl-dev \
+    linux-headers \
+    postgresql-dev \
+    libffi-dev \
+    openssl-dev \
+    mysql-dev \
+    build-base
+
 # Set working directory
 WORKDIR /app
 
-# Install dependencies
-COPY requirements.txt requirements.txt
+# Copy requirements first
+COPY requirements.txt .
+
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
 COPY . .
-
-# Copy secrets
-COPY .env /app/.env
-COPY credentials.json /workspace/credentials.json
 
 # Expose the required port
 EXPOSE 8080
