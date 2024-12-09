@@ -29,4 +29,4 @@ COPY . .
 EXPOSE 8080
 
 # Start the application with gunicorn
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8080", "app:app"]
+CMD ["python", "app.py"]
