@@ -1,0 +1,43 @@
+steps:
+  # Step 1: Build the Docker image
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "asia-southeast2-docker.pkg.dev/capstone-443613/instahelp/instahelp-api",
+        ".",
+      ]
+
+  # Step 2: Push the Docker image to Artifact Registry
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "push",
+        "asia-southeast2-docker.pkg.dev/capstone-443613/instahelp/instahelp-api",
+      ]
+
+  # Step 3: Deploy to Cloud Run
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    args:
+      [
+        "gcloud",
+        "run",
+        "deploy",
+        "instahelp-api",
+        "--image",
+        "asia-southeast2-docker.pkg.dev/capstone-443613/instahelp/instahelp-api",
+        "--region",
+        "asia-southeast2",
+        "--platform",
+        "managed",
+        "--allow-unauthenticated",
+        "--set-env-vars",
+        "FLASK_ENV=production,APP_HOST=0.0.0.0,APP_DEBUG=False",
+      ]
+    env:
+      - "GOOGLE_APPLICATION_CREDENTIALS=/workspace/credentials.json"
+
+# Images for artifact registry
+images:
+  - "asia-southeast2-docker.pkg.dev/capstone-443613/instahelp/instahelp-api"
