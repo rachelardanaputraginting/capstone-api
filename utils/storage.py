@@ -6,13 +6,21 @@ import time
 import magic
 
 from google.cloud import storage
+from google.oauth2 import service_account
 
 class Storage:
     def __init__(self):
         # Pastikan path kredensial benar
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = 'credentials.json'
+        status = os.environ.get("Environment")
+
+        if status == "production":
+            GOOGLE_APPLICATION_CREDENTIALS = service_account.Credentials.from_service_account_file(
+                "SECRETS/SERVICE_ACCOUNT")
+        else:
+            GOOGLE_APPLICATION_CREDENTIALS = service_account.Credentials.from_service_account_file(
+                os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"))
         
-        self.client = storage.Client()
+        self.client = storage.Client(credentials=GOOGLE_APPLICATION_CREDENTIALS)
         self.bucket = self.client.bucket(os.getenv('BUCKET_NAME'))
 
     def getFile(self, filepath):
