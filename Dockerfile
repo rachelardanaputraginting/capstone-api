@@ -1,21 +1,22 @@
 # Base image
-FROM python:3.11-slim
+FROM python:3.12-alpine
 
 # Set working directory
 WORKDIR /app
 
-# Copy application code
-COPY . .
-
 # Install dependencies
+COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Expose port
+# Copy application files
+COPY . .
+
+# Copy secrets
+COPY .env /app/.env
+COPY credentials.json /workspace/credentials.json
+
+# Expose the required port
 EXPOSE 8080
 
-# Set environment variables for Flask
-ENV PORT 8080
-ENV GOOGLE_APPLICATION_CREDENTIALS="/app/credentials.json"
-
-# Command to run the application
-CMD ["flask", "run", "--host=0.0.0.0", "--port=8080"]
+# Start the application
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8080", "app:app"]

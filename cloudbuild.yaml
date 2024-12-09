@@ -17,7 +17,23 @@ steps:
         "asia-southeast2-docker.pkg.dev/capstone-443613/instahelp/instahelp-api",
       ]
 
-  # Step 3: Deploy to Cloud Run
+  # Step 3: Fetch `credentials.json` from Secret Manager
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        gcloud secrets versions access latest --secret="credentials-json" > credentials.json
+
+  # Step 4: Fetch `.env` from Secret Manager
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        gcloud secrets versions access latest --secret="instahelp-env" > .env
+
+  # Step 5: Deploy to Cloud Run
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     args:
       [
@@ -38,6 +54,6 @@ steps:
     env:
       - "GOOGLE_APPLICATION_CREDENTIALS=/workspace/credentials.json"
 
-# Images for artifact registry
+# Specify the Docker image for Artifact Registry
 images:
   - "asia-southeast2-docker.pkg.dev/capstone-443613/instahelp/instahelp-api"
