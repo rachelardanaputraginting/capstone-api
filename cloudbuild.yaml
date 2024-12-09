@@ -1,17 +1,5 @@
 steps:
   # Step 1: Build the Docker image
-  # Debug step untuk memeriksa isi repository
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        echo "Repository Contents:"
-        ls -la
-        echo "Full Path Contents:"
-        pwd
-        find .
-        
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
@@ -29,21 +17,21 @@ steps:
         '${_ARTIFACT_REGISTRY}/${_SERVICE_NAME}',
       ]
 
-  # Step 3: Fetch `credentials.json` from Secret Manager
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        gcloud secrets versions access latest --secret="credentials-json" > credentials.json
+  # # Step 3: Fetch `credentials.json` from Secret Manager
+  # - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  #   entrypoint: 'bash'
+  #   args:
+  #     - '-c'
+  #     - |
+  #       gcloud secrets versions access latest --secret="credentials-json" > credentials.json
 
-  # Step 4: Fetch `.env` from Secret Manager
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        gcloud secrets versions access latest --secret="instahelp-env" > .env
+  # # Step 4: Fetch `.env` from Secret Manager
+  # - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  #   entrypoint: 'bash'
+  #   args:
+  #     - '-c'
+  #     - |
+  #       gcloud secrets versions access latest --secret="instahelp-env" > .env
 
   # Step 5: Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
