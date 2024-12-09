@@ -141,6 +141,7 @@ class Incident(db.Model):
     resident_id = db.Column(db.BigInteger, db.ForeignKey('residents.id'), nullable=False)
     institution_id = db.Column(db.BigInteger, db.ForeignKey('institutions.id'), nullable=False)
     description = db.Column(db.Text)
+    label = db.Column(db.Text)
     status = db.Column(db.Enum(IncidentStatus), nullable=False, default=IncidentStatus.REPORTED)
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
