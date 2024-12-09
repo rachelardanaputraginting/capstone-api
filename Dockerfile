@@ -1,7 +1,7 @@
 # Base image
 FROM python:3.12-alpine
 
-# Install system dependencies
+# Install system dependencies including libmagic
 RUN apk add --no-cache \
     gcc \
     musl-dev \
@@ -10,7 +10,8 @@ RUN apk add --no-cache \
     libffi-dev \
     openssl-dev \
     mysql-dev \
-    build-base
+    build-base \
+    file-dev  # Install file package that includes libmagic
 
 # Set working directory
 WORKDIR /app
@@ -27,5 +28,5 @@ COPY . .
 # Expose the required port
 EXPOSE 8080
 
-# Start the application
+# Start the application with gunicorn
 CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8080", "app:app"]
