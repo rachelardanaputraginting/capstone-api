@@ -15,7 +15,7 @@ class Storage:
 
         if status == "production":
             GOOGLE_APPLICATION_CREDENTIALS = service_account.Credentials.from_service_account_file(
-                "SECRETS/SERVICE_ACCOUNT")
+                "/SECRETS/SERVICE_ACCOUNT")
         else:
             GOOGLE_APPLICATION_CREDENTIALS = service_account.Credentials.from_service_account_file(
                 os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"))

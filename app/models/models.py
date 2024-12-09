@@ -6,7 +6,7 @@ class Gender(str, Enum):
     FEMALE = "female"
     
 class Label(str, Enum):
-    HIGH = "HIGH"
+    HIGH = "high"
     MEDIUM = "medium"
     LOW = "low"
 
