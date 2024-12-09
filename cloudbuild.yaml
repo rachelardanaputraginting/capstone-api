@@ -1,5 +1,17 @@
 steps:
   # Step 1: Build the Docker image
+  # Debug step untuk memeriksa isi repository
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Repository Contents:"
+        ls -la
+        echo "Full Path Contents:"
+        pwd
+        find .
+        
   - name: 'gcr.io/cloud-builders/docker'
     args:
       [
