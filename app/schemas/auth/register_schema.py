@@ -72,7 +72,7 @@ class ResidentRegistrationSchema(Schema):
     gender = fields.String(
         required=True,
         validate=validate.OneOf(
-            ['FEMALE', 'FEMALE'], 
+            ['MALE', 'FEMALE'], 
             error="Jenis kelamin hanya boleh 'Pria' atau 'Wanita'."),
         error_messages={"required": "Jenis kelamin wajib diisi."}
     )

@@ -114,7 +114,7 @@ class ResidentProfileSchema(BaseProfileSchema):
     )
     gender = fields.String(
         required=False, 
-        validate=validate.OneOf(['FEMALE', 'FEMALE'], error="Jenis kelamin hanya boleh 'Pria' atau 'Wanita'."),
+        validate=validate.OneOf(['MALE', 'FEMALE'], error="Jenis kelamin hanya boleh 'Pria' atau 'Wanita'."),
         error_messages={
             "null": "Jenis kelamin tidak boleh kosong.",
             "invalid": "Pilihan jenis kelamin tidak valid."
