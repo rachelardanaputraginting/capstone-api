@@ -1,7 +1,7 @@
 # Base image
 FROM python:3.11-alpine
 
-# Install system dependencies including libmagic
+# Install system dependencies
 RUN apk add --no-cache \
     gcc \
     musl-dev \
@@ -11,7 +11,11 @@ RUN apk add --no-cache \
     openssl-dev \
     mysql-dev \
     build-base \
-    file-dev  # Install file package that includes libmagic
+    file-dev \
+    # Additional dependencies for scientific computing
+    lapack-dev \
+    g++ \
+    libstdc++
 
 # Set working directory
 WORKDIR /app
@@ -19,8 +23,12 @@ WORKDIR /app
 # Copy requirements first
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies with additional options
+RUN pip install --no-cache-dir \
+    --upgrade pip \
+    wheel \
+    numpy \
+    && pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
 COPY . .
