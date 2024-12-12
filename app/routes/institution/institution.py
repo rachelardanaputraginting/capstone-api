@@ -6,6 +6,7 @@ from utils import auth
 from utils.datetime import get_current_time_in_timezone
 from app.models.models import Institution, User, Vehicle, Driver, Incident, Resident
 from utils.storage import storage_manager
+from utils.text_classification import predict_emergency_case
  
 from app.schemas.incident.create_schema import CreateIncidentSchema
 
@@ -190,13 +191,16 @@ def add_incident(institution_id):
         # Upload gambar dan dapatkan path
         file_path = storage_manager.uploadFile(image_base64, dir='incidents')
         
+        predicted_label = predict_emergency_case(data['description'])
+        label = data['label'] if 'label' in data else predicted_label
+        
         new_incident = Incident(
             institution_id=institution_id,
             resident_id=resident_id,
             description=data['description'],
             latitude=data['latitude'],
             longitude=data['longitude'],
-            label=data['label'],
+            label=label,  # Label sudah divalidasi
             picture=file_path,
             reported_at=get_current_time_in_timezone('Asia/Jakarta')  # WIB
         )
@@ -212,6 +216,7 @@ def add_incident(institution_id):
                 'id': new_incident.id,
                 'institution_id': new_incident.institution_id,
                 'resident_id': new_incident.resident_id,
+                'label': new_incident.label,
                 'description': new_incident.description,
                 'latitude': new_incident.latitude,
                 'longitude': new_incident.longitude,

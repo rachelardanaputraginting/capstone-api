@@ -6,7 +6,6 @@ from app.models.models import Resident, Institution
 class CreateIncidentSchema(Schema):
     description = fields.String(
         required=True, 
-        validate=[validate.Length(min=100, error="Deskripsi minimal harus 100 karakter.")],
         error_messages={
             "required": "Deskripsi wajib diisi.",
             "null": "Deskripsi tidak boleh kosong."
@@ -46,16 +45,8 @@ class CreateIncidentSchema(Schema):
             "invalid": "Format email tidak valid."
         }
     )
-    label = fields.String(
-        required=True,
-        validate=validate.OneOf(
-            ['HIGH', 'MEDIUM', 'LOW'], 
-            error="Label hanya boleh 'High', 'Medium' atau 'Low'."),
-        error_messages={"required": "Label wajib diisi."}
-    )
     picture = fields.String(
-        required=False, 
-        validate=[validate.Length(max=255, error="Panjang gambar tidak boleh melebihi 255 karakter.")],
+        required=False,
         error_messages={
             "null": "Gambar tidak boleh kosong."
         }
@@ -65,6 +56,17 @@ class CreateIncidentSchema(Schema):
         # Inisialisasi skema dengan sesi database."""
         super().__init__(*args, **kwargs)
         self.db_session = db_session
+    
+    @validates('description')
+    def validate_description(self, value):
+        # Validasi panjang karakter maksimal 75
+        if len(value) > 75:
+            raise ValidationError("Deskripsi tidak boleh lebih dari 75 karakter.")
+        
+        # Validasi jumlah kata maksimal 12
+        word_count = len(value.split())
+        if word_count > 12:
+            raise ValidationError("Deskripsi tidak boleh lebih dari 12 kata.")
 
     @validates('institution_id')
     def validate_institution_id(self, value):
