@@ -1,5 +1,5 @@
 # Base image
-FROM python:3.12-alpine
+FROM python:3.11-alpine
 
 # Install system dependencies including libmagic
 RUN apk add --no-cache \
