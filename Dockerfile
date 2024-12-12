@@ -1,20 +1,17 @@
 # Base image
-FROM python:3.11-slim
+FROM python:3.11-alpine
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install system dependencies including libmagic
+RUN apk add --no-cache \
     gcc \
-    g++ \
+    musl-dev \
+    linux-headers \
+    postgresql-dev \
     libffi-dev \
-    libssl-dev \
-    libblas-dev \
-    liblapack-dev \
-    libmagic-dev \
-    libmysqlclient-dev \
-    build-essential \
-    python3-dev \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    openssl-dev \
+    mysql-dev \
+    build-base \
+    file-dev  # Install file package that includes libmagic
 
 # Set working directory
 WORKDIR /app
