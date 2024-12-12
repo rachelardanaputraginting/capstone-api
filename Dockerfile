@@ -1,5 +1,5 @@
 # Base image
-FROM python:3.11-alpine
+FROM python:3.10-alpine
 
 # Install system dependencies
 RUN apk add --no-cache \
