@@ -3,25 +3,19 @@ FROM python:3.11-slim
 
 # Install dependencies sistem yang dibutuhkan untuk beberapa pustaka
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    libmariadb-dev \
-    libjpeg-dev zlib1g-dev libpng-dev \
-    gfortran liblapack-dev \
-    libc6-dev libstdc++6 \
-    libxml2-dev libxslt-dev \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip, setuptools, dan wheel ke versi terbaru
 RUN pip install --upgrade pip setuptools wheel
 
-# Menyalin requirements.txt ke dalam image
-COPY requirements.txt .
-
 # Mengatur working directory di dalam container
 WORKDIR /app
 
-# Install dependencies yang ada di requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt || tail -n 20 /root/.pip/pip.log
+# Salin file requirements dan instal dependensi Python
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Meng expose port yang digunakan aplikasi Flask
 EXPOSE 8080
