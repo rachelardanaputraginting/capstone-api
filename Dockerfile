@@ -11,12 +11,7 @@ RUN apt-get update && apt-get install -y \
     openssl-dev \
     mysql-dev \
     build-essential \
-    file \
-    # Additional dependencies for scientific computing
-    liblapack-dev \
-    g++ \
-    libstdc++ \
-    && rm -rf /var/lib/apt/lists/*
+    file 
 
 # Set working directory
 WORKDIR /app
