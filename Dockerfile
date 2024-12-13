@@ -25,6 +25,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy application files
 COPY . .
 
+ENV GUNICORN_CMD_ARGS="--workers=2 --threads=4 --worker-class=gthread --worker-tmp-dir /dev/shm --max-requests 1000 --max-requests-jitter 50"
+
 # Expose the required port
 EXPOSE 8080
 
