@@ -1,27 +1,27 @@
 # Base image
-FROM python:3.10-alpine
+FROM python:3.9-slim
 
 # Install system dependencies including libmagic
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     gcc \
-    musl-dev \
-    linux-headers \
-    postgresql-dev \
+    g++ \
+    libpq-dev \
     libffi-dev \
-    openssl-dev \
-    mysql-dev \
-    build-base \
-    file-dev  # Install file package that includes libmagic
+    libssl-dev \
+    default-libmysqlclient-dev \
+    build-essential \
+    libmagic1 \
+    pkg-config \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
 
 # Copy requirements first
 COPY requirements.txt .
-
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 # Copy application files
 COPY . .
 
