@@ -3,10 +3,15 @@ FROM python:3.10-slim
 # Install system dependencies including mariadb-dev
 RUN apt-get update && apt-get install -y \
     build-essential \
-    libmariadb-dev \
-    libmariadb-dev-compat \
     libgl1-mesa-glx \
     libglib2.0-0 \
+    gcc \
+    musl-dev \
+    linux-headers \
+    postgresql-dev \
+    libffi-dev \
+    openssl-dev \
+    mysql-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip before installing dependencies
