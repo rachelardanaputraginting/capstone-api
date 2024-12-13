@@ -1,11 +1,11 @@
 # Base image
 FROM python:3.10-slim
 
-# Install system dependencies including mysqlclient dependencies
+# Install system dependencies including mariadb-dev (replacement for libmysqlclient-dev)
 RUN apt-get update && apt-get install -y \
     build-essential \
     libmariadb-dev \
-    libmysqlclient-dev \
+    libmariadb-dev-compat \
     libgl1-mesa-glx \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
