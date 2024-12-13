@@ -2,16 +2,17 @@
 FROM python:3.12-slim
 
 # Install system dependencies including libmagic
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     musl-dev \
     linux-headers \
-    postgresql-dev \
+    postgresql-server-dev-all \
     libffi-dev \
-    openssl-dev \
-    mysql-dev \
-    build-base \
-    file-dev  # Install file package that includes libmagic
+    libssl-dev \
+    default-libmysqlclient-dev \
+    build-essential \
+    file \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
@@ -20,7 +21,11 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir \
+    --upgrade pip \
+    wheel \
+    numpy \
+    && pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
 COPY . .
