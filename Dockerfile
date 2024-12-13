@@ -9,7 +9,6 @@ RUN apt-get update && apt-get install -y \
     gfortran liblapack-dev \
     libc6-dev libstdc++6 \
     libxml2-dev libxslt-dev \
-    libmysqlclient-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip, setuptools, dan wheel ke versi terbaru
