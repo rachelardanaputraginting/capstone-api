@@ -1,7 +1,6 @@
-# Base image
 FROM python:3.10-slim
 
-# Install system dependencies including mariadb-dev (replacement for libmysqlclient-dev)
+# Install system dependencies including mariadb-dev
 RUN apt-get update && apt-get install -y \
     build-essential \
     libmariadb-dev \
@@ -10,14 +9,17 @@ RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
+# Upgrade pip before installing dependencies
+RUN pip install --upgrade pip
+
 # Set working directory
 WORKDIR /app
 
 # Menyalin requirements.txt terlebih dahulu
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies with verbose logging for debugging
+RUN pip install -v --no-cache-dir -r requirements.txt
 
 # Menyalin aplikasi lainnya
 COPY . .
