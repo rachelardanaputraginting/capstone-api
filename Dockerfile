@@ -22,10 +22,12 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
+
+# Download NLTK data (punkt) needed for tokenization
+RUN python -m nltk.downloader punkt
+
 # Copy application files
 COPY . .
-
-ENV GUNICORN_CMD_ARGS="--workers=2 --threads=4 --worker-class=gthread --worker-tmp-dir /dev/shm --max-requests 1000 --max-requests-jitter 50"
 
 # Expose the required port
 EXPOSE 8080
