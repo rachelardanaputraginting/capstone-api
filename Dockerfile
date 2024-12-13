@@ -1,40 +1,41 @@
-# Base image
+# Gunakan Python 3.12-slim sebagai base image
 FROM python:3.12-slim
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1 \
-    DEBIAN_FRONTEND=noninteractive
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install dependencies sistem yang diperlukan
+RUN apt-get update && apt-get install -y \
     gcc \
+    musl-dev \
     linux-headers \
-    postgresql-server-dev-all \
+    postgresql-dev \
     libffi-dev \
-    libssl-dev \
-    default-libmysqlclient-dev \
+    openssl-dev \
+    mysql-dev \
     build-essential \
     file \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    # Additional dependencies for scientific computing
+    liblapack-dev \
+    g++ \
+    libstdc++ \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
 
-# Copy requirements first
+# Copy requirements.txt terlebih dahulu
 COPY requirements.txt .
 
-# Install Python dependencies
+# Install dependencies Python dengan opsi tambahan
 RUN pip install --no-cache-dir \
     --upgrade pip \
     wheel \
     numpy \
     && pip install --no-cache-dir -r requirements.txt
 
-# Copy application files
+# Salin file aplikasi
 COPY . .
 
-# Expose the required port
+# Expose port yang diperlukan
 EXPOSE 8080
 
-# Start the application with gunicorn
+# Start aplikasi menggunakan gunicorn
 CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8080", "app:app"]
