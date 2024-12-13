@@ -1,10 +1,8 @@
-FROM python:3.10-slim
+# Base image
+FROM python:3.10-alpine
 
-# Install system dependencies including mariadb-dev
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
+# Install system dependencies including libmagic
+RUN apk add --no-cache \
     gcc \
     musl-dev \
     linux-headers \
@@ -12,21 +10,19 @@ RUN apt-get update && apt-get install -y \
     libffi-dev \
     openssl-dev \
     mysql-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Upgrade pip before installing dependencies
-RUN pip install --upgrade pip
+    build-base \
+    file-dev  # Install file package that includes libmagic
 
 # Set working directory
 WORKDIR /app
 
-# Menyalin requirements.txt terlebih dahulu
+# Copy requirements first
 COPY requirements.txt .
 
-# Install Python dependencies with verbose logging for debugging
-RUN pip install -v --no-cache-dir -r requirements.txt
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Menyalin aplikasi lainnya
+# Copy application files
 COPY . .
 
 # Expose the required port
