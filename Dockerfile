@@ -1,10 +1,13 @@
 # Base image
 FROM python:3.12-slim
 
-# Install system dependencies including libmagic
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
-    musl-dev \
     linux-headers \
     postgresql-server-dev-all \
     libffi-dev \
