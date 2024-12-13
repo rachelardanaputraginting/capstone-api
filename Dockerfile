@@ -1,32 +1,33 @@
-# Base image
-FROM python:3.12-alpine
+# Gunakan python 3.10 slim sebagai base image
+FROM python:3.10-slim
 
-# Install system dependencies including libmagic
-RUN apk add --no-cache \
-    gcc \
-    musl-dev \
-    linux-headers \
-    postgresql-dev \
+# Install sistem dependensi yang diperlukan untuk TensorFlow dan pustaka lainnya
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libopenblas-dev \
+    liblapack-dev \
+    python3-dev \
     libffi-dev \
-    openssl-dev \
-    mysql-dev \
-    build-base \
-    file-dev  # Install file package that includes libmagic
+    libssl-dev \
+    libcurl4-openssl-dev \
+    libjpeg-dev \
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
+# Setel direktori kerja
 WORKDIR /app
 
-# Copy requirements first
+# Salin requirements.txt ke dalam container
 COPY requirements.txt .
 
-# Install Python dependencies
+# Install dependensi Python
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application files
+# Salin seluruh aplikasi ke dalam container
 COPY . .
 
-# Expose the required port
+# Tentukan port yang akan diekspos
 EXPOSE 8080
 
-# Start the application with gunicorn
+# Tentukan command untuk menjalankan aplikasi (ganti dengan sesuai aplikasi Anda)
 CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8080", "app:app"]
