@@ -10,8 +10,8 @@ RUN apt-get update && apt-get install -y \
     libffi-dev \
     openssl-dev \
     mysql-dev \
-    build-essential \
-    file 
+    build-base \
+    file-dev  # Install file package that includes libmagic
 
 # Set working directory
 WORKDIR /app
