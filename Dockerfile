@@ -1,5 +1,5 @@
 # Gunakan python 3.10 slim sebagai base image
-FROM python:3.10-slim
+FROM python:3.12-slim
 
 # Install sistem dependensi yang diperlukan untuk TensorFlow dan pustaka lainnya
 RUN apt-get update && apt-get install -y \
