@@ -1,32 +1,36 @@
-# Gunakan Python 3.11-alpine sebagai base image
-FROM python:3.11-alpine
+# Gunakan Python 3.11 sebagai base image
+FROM python:3.11-slim
 
-# Install dependencies sistem yang dibutuhkan untuk TensorFlow dan aplikasi lainnya
-RUN apk add --no-cache \
-    gcc \
-    musl-dev \
-    linux-headers \
-    postgresql-dev \
+# Perbarui sistem dan instal dependensi TensorFlow
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libopenblas-dev \
+    liblapack-dev \
+    python3-dev \
     libffi-dev \
-    openssl-dev \
-    mysql-dev \
-    build-base \
-    file-dev  # Install file package yang mencakup libmagic
+    libssl-dev \
+    libcurl4-openssl-dev \
+    libjpeg-dev \
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
+# Perbarui pip ke versi terbaru
+RUN pip install --upgrade pip
+
+# Buat direktori kerja
 WORKDIR /app
 
 # Salin file requirements.txt
 COPY requirements.txt .
 
-# Install dependencies Python
+# Instal dependensi Python
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Salin aplikasi ke dalam container
+# Salin kode aplikasi
 COPY . .
 
-# Ekspose port yang diperlukan (misalnya 8080)
+# Ekspose port aplikasi
 EXPOSE 8080
 
-# Jalankan aplikasi dengan gunicorn
+# Jalankan aplikasi
 CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:8080", "app:app"]
